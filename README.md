@@ -5,9 +5,12 @@ A Go application that tracks Apple App Store app version updates. Run it as a CL
 ## Features
 
 - 📱 Track multiple iOS apps by bundle ID
+- 🔍 **Web UI with App Store search** - Find and add apps instantly
 - 🔄 Automatic version change detection
 - 📝 Store complete version history with release notes
 - ⏰ Daemon mode for continuous monitoring
+- 🌐 Web dashboard with real-time updates
+- 🔌 REST API for programmatic access
 - 🐳 Docker support with docker-compose
 - 💾 Simple JSON file-based storage
 - 🚀 No database required
@@ -32,7 +35,16 @@ docker-compose up -d
 
 # View logs
 docker-compose logs -f
+
+# Access the web interface
+# Open http://localhost:7738 in your browser
 ```
+
+The web interface lets you:
+- 🔍 Search the App Store by name
+- ➕ Add apps to tracking with one click
+- 📊 View all tracked apps and their versions
+- 📈 See recent version updates
 
 ### Using Go
 
@@ -59,6 +71,9 @@ go build -o mavt ./cmd/mavt
 ### CLI Commands
 
 ```bash
+# Show version information
+./mavt -version
+
 # Add an app to tracking
 ./mavt -add <bundle-id>
 
@@ -78,18 +93,55 @@ go build -o mavt ./cmd/mavt
 ./mavt -recent 24h
 ```
 
+### Web Interface
+
+When running in daemon mode, access the web dashboard at `http://localhost:<port>` (default 8080, or 7738 in Docker).
+
+**Features:**
+- **Search Apps**: Type any app name to search the App Store (e.g., "Instagram", "WhatsApp")
+- **One-Click Tracking**: Click "Track" button to instantly add apps to monitoring
+- **Dashboard**: View all tracked apps with version info, last checked time, and developer
+- **Update History**: See version changes from the last 7 days
+- **Auto-Refresh**: Page updates every 30 seconds
+
+### REST API
+
+The HTTP server provides a REST API for programmatic access:
+
+```bash
+# Search for apps
+curl "http://localhost:8080/api/search?q=instagram&limit=5"
+
+# Get all tracked apps
+curl http://localhost:8080/api/apps
+
+# Add an app to tracking
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"bundle_id":"com.burbn.instagram"}' \
+  http://localhost:8080/api/track
+
+# Get recent updates (last 24 hours)
+curl "http://localhost:8080/api/updates?since=24h"
+
+# Health check
+curl http://localhost:8080/api/health
+```
+
 ### Finding Bundle IDs
 
-You can find an app's bundle ID by:
-1. Searching on the App Store website
-2. Looking at the URL: `https://apps.apple.com/us/app/app-name/id<TRACK_ID>`
-3. Using the iTunes Search API to search by name
+**Easiest way**: Use the web interface search! Just type the app name.
+
+Or manually:
+1. Search on the App Store website
+2. Look at the URL: `https://apps.apple.com/us/app/app-name/id<TRACK_ID>`
+3. Use the API: `curl "http://localhost:8080/api/search?q=app-name"`
 
 Example bundle IDs:
+- Instagram: `com.burbn.instagram`
+- WhatsApp: `net.whatsapp.WhatsApp`
+- TikTok: `com.zhiliaoapp.musically`
 - Safari: `com.apple.mobilesafari`
 - Apple Music: `com.apple.Music`
-- Chrome: `com.google.chrome.ios`
-- Facebook: `com.facebook.Facebook`
 
 ## Configuration
 
@@ -101,8 +153,8 @@ Configure via environment variables (see [.env.example](.env.example)):
 | `MAVT_CHECK_INTERVAL` | How often to check for updates | `1h` |
 | `MAVT_DATA_DIR` | Directory for storing data | `./data` |
 | `MAVT_LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
-| `MAVT_SERVER_PORT` | HTTP server port (future use) | `8080` |
-| `MAVT_SERVER_HOST` | HTTP server host (future use) | `0.0.0.0` |
+| `MAVT_SERVER_PORT` | HTTP server port | `8080` |
+| `MAVT_SERVER_HOST` | HTTP server host | `0.0.0.0` |
 
 ## Data Storage
 

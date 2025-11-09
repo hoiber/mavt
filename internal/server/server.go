@@ -10,6 +10,7 @@ import (
 
 	"github.com/thomas/mavt/internal/appstore"
 	"github.com/thomas/mavt/internal/tracker"
+	"github.com/thomas/mavt/internal/version"
 	"github.com/thomas/mavt/pkg/models"
 )
 
@@ -293,6 +294,10 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         </div>
     </div>
 
+    <footer style="text-align: center; padding: 20px; color: #999; font-size: 0.9em;">
+        MAVT v` + version.Version + ` &bull; <a href="https://github.com/thomas/mavt" style="color: #667eea; text-decoration: none;">GitHub</a>
+    </footer>
+
     <script>
         async function loadApps() {
             try {
@@ -522,6 +527,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":       "healthy",
+		"version":      version.Version,
 		"tracked_apps": len(apps),
 		"timestamp":    time.Now(),
 	})

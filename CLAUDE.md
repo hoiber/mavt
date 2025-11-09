@@ -78,6 +78,9 @@ golangci-lint run
 
 ### Running
 ```bash
+# Show version information
+go run ./cmd/mavt -version
+
 # Add an app to track
 go run ./cmd/mavt -add com.apple.mobilesafari
 
@@ -98,6 +101,7 @@ go run ./cmd/mavt -recent 24h
 
 # Build and run the binary
 go build -o mavt ./cmd/mavt
+./mavt -version
 ./mavt -add com.apple.Music
 ```
 
@@ -132,9 +136,11 @@ mavt/
 │   └── main.go            # CLI commands and daemon mode
 ├── internal/              # Private application code
 │   ├── appstore/          # iTunes/App Store API client
-│   │   └── client.go      # HTTP client for App Store lookups
+│   │   └── client.go      # HTTP client for App Store lookups and search
 │   ├── config/            # Configuration management
 │   │   └── config.go      # Environment-based config loader
+│   ├── server/            # HTTP server and web UI
+│   │   └── server.go      # Web interface and REST API endpoints
 │   ├── storage/           # Data persistence layer
 │   │   └── storage.go     # JSON file-based storage
 │   └── tracker/           # Core tracking logic
@@ -149,21 +155,43 @@ mavt/
 └── .env.example           # Example environment variables
 ```
 
+## Web Interface
+
+When running in daemon mode, MAVT provides a web interface on the configured port (default: 8080).
+
+### Accessing the Web UI
+- Default URL: `http://localhost:8080` (or your configured `MAVT_SERVER_PORT`)
+- In Docker: Exposed on the mapped port (e.g., `http://localhost:7738`)
+
+### Web Features
+- **Search & Add Apps**: Search the App Store and add apps to tracking with one click
+- **View Tracked Apps**: See all apps being monitored with version info
+- **Recent Updates**: View version changes from the last 7 days
+- **Auto-refresh**: Page updates every 30 seconds
+
 ## Architecture
 
 ### Data Flow
-1. **App Store Client** ([internal/appstore/client.go](internal/appstore/client.go)) queries the iTunes Search API by bundle ID or track ID
-2. **Tracker** ([internal/tracker/tracker.go](internal/tracker/tracker.go)) compares fetched data with stored versions to detect changes
-3. **Storage** ([internal/storage/storage.go](internal/storage/storage.go)) persists app info and version updates as JSON files
-4. **Main** ([cmd/mavt/main.go](cmd/mavt/main.go)) provides CLI interface and daemon mode orchestration
+1. **App Store Client** ([internal/appstore/client.go](internal/appstore/client.go)) queries the iTunes Search API by bundle ID, track ID, or search term
+2. **HTTP Server** ([internal/server/server.go](internal/server/server.go)) provides web UI and REST API for searching and managing tracked apps
+3. **Tracker** ([internal/tracker/tracker.go](internal/tracker/tracker.go)) compares fetched data with stored versions to detect changes
+4. **Storage** ([internal/storage/storage.go](internal/storage/storage.go)) persists app info and version updates as JSON files
+5. **Main** ([cmd/mavt/main.go](cmd/mavt/main.go)) provides CLI interface and daemon mode orchestration
 
 ### Key Components
 
 **App Store API Integration:**
-- Uses iTunes Search API (`https://itunes.apple.com/lookup`)
+- Uses iTunes Search API (`https://itunes.apple.com/lookup` and `https://itunes.apple.com/search`)
 - No authentication required
+- Supports lookup by bundle ID, track ID, and text search
 - Returns app metadata including version, release notes, and release date
 - Rate limiting: Be respectful, no official limit documented
+
+**HTTP Server:**
+- Web UI with search, add, and monitoring capabilities
+- RESTful API for programmatic access
+- Runs in daemon mode alongside version checking
+- Auto-refreshing interface
 
 **Storage Strategy:**
 - File-based JSON storage in `data/` directory
@@ -176,11 +204,43 @@ mavt/
 - See [.env.example](.env.example) for all options
 - Supports comma-separated app lists for batch tracking
 
+### API Endpoints
+
+The HTTP server provides the following REST API endpoints:
+
+**GET /**
+- Web UI dashboard
+
+**GET /api/apps**
+- Returns all tracked apps as JSON
+- Example: `curl http://localhost:8080/api/apps`
+
+**GET /api/updates?since=<duration>**
+- Returns recent version updates
+- Duration format: `1h`, `24h`, `7d`, `168h`
+- Example: `curl http://localhost:8080/api/updates?since=24h`
+
+**GET /api/search?q=<term>&limit=<number>**
+- Search App Store by name
+- `q`: Search term (required)
+- `limit`: Max results (optional, default 10, max 50)
+- Example: `curl "http://localhost:8080/api/search?q=instagram&limit=5"`
+
+**POST /api/track**
+- Add an app to tracking
+- Body: `{"bundle_id": "com.example.app"}`
+- Example: `curl -X POST -H "Content-Type: application/json" -d '{"bundle_id":"com.burbn.instagram"}' http://localhost:8080/api/track`
+
+**GET /api/health**
+- Health check endpoint
+- Returns: `{"status":"healthy","tracked_apps":N,"timestamp":"..."}`
+
 ### Adding New Features
 
 When extending functionality:
 - App Store interactions go in `internal/appstore/`
 - Business logic goes in `internal/tracker/`
+- HTTP/API endpoints go in `internal/server/`
 - Data models in `pkg/models/` (public) or `internal/*/models.go` (private)
 - CLI commands in `cmd/mavt/main.go`
 

@@ -14,19 +14,33 @@ import (
 	"github.com/thomas/mavt/internal/server"
 	"github.com/thomas/mavt/internal/storage"
 	"github.com/thomas/mavt/internal/tracker"
+	"github.com/thomas/mavt/internal/version"
 )
 
 var (
-	addApp    = flag.String("add", "", "Add an app to track by bundle ID")
-	listApps  = flag.Bool("list", false, "List all tracked apps")
-	checkNow  = flag.Bool("check", false, "Check for updates immediately")
-	runDaemon = flag.Bool("daemon", false, "Run as a daemon (continuous monitoring)")
-	showUpdates = flag.String("updates", "", "Show version history for a bundle ID")
+	addApp         = flag.String("add", "", "Add an app to track by bundle ID")
+	listApps       = flag.Bool("list", false, "List all tracked apps")
+	checkNow       = flag.Bool("check", false, "Check for updates immediately")
+	runDaemon      = flag.Bool("daemon", false, "Run as a daemon (continuous monitoring)")
+	showUpdates    = flag.String("updates", "", "Show version history for a bundle ID")
 	recentDuration = flag.String("recent", "", "Show recent updates (e.g., '24h', '7d')")
+	showVersion    = flag.Bool("version", false, "Show version information")
 )
 
 func main() {
 	flag.Parse()
+
+	// Show version if requested
+	if *showVersion {
+		fmt.Printf("MAVT v%s\n", version.Version)
+		if version.GitCommit != "unknown" {
+			fmt.Printf("Git Commit: %s\n", version.GitCommit)
+		}
+		if version.BuildDate != "unknown" {
+			fmt.Printf("Build Date: %s\n", version.BuildDate)
+		}
+		return
+	}
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -166,7 +180,7 @@ func handleCheckNow(tr *tracker.Tracker) {
 }
 
 func handleDaemon(tr *tracker.Tracker, cfg *config.Config) {
-	log.Printf("Starting daemon mode (check interval: %s)", cfg.CheckInterval)
+	log.Printf("MAVT v%s - Starting daemon mode (check interval: %s)", version.Version, cfg.CheckInterval)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
