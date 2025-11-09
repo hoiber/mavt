@@ -257,6 +257,46 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             border-left: 4px solid #4caf50;
             margin: 10px 0;
         }
+        .release-notes {
+            background: #f5f5f5;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #555;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            border-left: 3px solid #667eea;
+        }
+        .release-notes-label {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .update-notes {
+            background: #f0f7f0;
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #555;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .toggle-notes {
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: inline-block;
+            text-decoration: underline;
+        }
+        .toggle-notes:hover {
+            color: #764ba2;
+        }
     </style>
 </head>
 <body>
@@ -310,8 +350,16 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                     return;
                 }
 
-                container.innerHTML = apps.map(app =>
-                    '<div class="app-card">' +
+                container.innerHTML = apps.map(app => {
+                    let releaseNotesHtml = '';
+                    if (app.release_notes && app.release_notes.trim()) {
+                        releaseNotesHtml = '<div class="release-notes">' +
+                            '<span class="release-notes-label">Latest Release Notes (v' + app.version + '):</span>' +
+                            app.release_notes +
+                        '</div>';
+                    }
+
+                    return '<div class="app-card">' +
                         '<div class="app-name">' + app.track_name + '</div>' +
                         '<div class="app-details">' +
                             '<div class="detail">' +
@@ -331,8 +379,9 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                                 '<span class="detail-value">' + new Date(app.last_checked).toLocaleString() + '</span>' +
                             '</div>' +
                         '</div>' +
-                    '</div>'
-                ).join('');
+                        releaseNotesHtml +
+                    '</div>';
+                }).join('');
             } catch (error) {
                 document.getElementById('apps').innerHTML =
                     '<div class="error">Failed to load apps: ' + error.message + '</div>';
@@ -350,14 +399,24 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                     return;
                 }
 
-                container.innerHTML = updates.map(update =>
-                    '<div class="update-card">' +
+                container.innerHTML = updates.map((update, index) => {
+                    let notesHtml = '';
+                    if (update.release_notes && update.release_notes.trim()) {
+                        const notesId = 'notes-' + index;
+                        notesHtml = '<div class="update-notes" id="' + notesId + '" style="display:none;">' +
+                            update.release_notes +
+                        '</div>' +
+                        '<span class="toggle-notes" onclick="toggleNotes(\'' + notesId + '\', this)">Show release notes ▼</span>';
+                    }
+
+                    return '<div class="update-card">' +
                         '<div class="update-header">' +
                             update.track_name + ': ' + update.old_version + ' → ' + update.new_version +
                         '</div>' +
                         '<div class="update-time">' + new Date(update.updated_at).toLocaleString() + '</div>' +
-                    '</div>'
-                ).join('');
+                        notesHtml +
+                    '</div>';
+                }).join('');
             } catch (error) {
                 document.getElementById('updates').innerHTML =
                     '<div class="error">Failed to load updates: ' + error.message + '</div>';
@@ -438,6 +497,17 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                 alert('Failed to add app: ' + error.message);
                 button.disabled = false;
                 button.textContent = originalText;
+            }
+        }
+
+        function toggleNotes(notesId, toggleElement) {
+            const notesDiv = document.getElementById(notesId);
+            if (notesDiv.style.display === 'none') {
+                notesDiv.style.display = 'block';
+                toggleElement.textContent = 'Hide release notes ▲';
+            } else {
+                notesDiv.style.display = 'none';
+                toggleElement.textContent = 'Show release notes ▼';
             }
         }
 

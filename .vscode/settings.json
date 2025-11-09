@@ -1,0 +1,6 @@
+{
+    "sonarlint.connectedMode.project": {
+        "connectionId": "hoiber",
+        "projectKey": "hoiber_mavt"
+    }
+}
