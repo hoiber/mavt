@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  mavt:
+    build: .
+    image: mavt:latest
+    container_name: mavt
+    restart: unless-stopped
+
+    environment:
+      # Comma-separated list of bundle IDs to track
+      - MAVT_APPS=com.apple.mobilesafari,com.apple.Music
+
+      # How often to check for updates
+      - MAVT_CHECK_INTERVAL=1h
+
+      # Log level: debug, info, warn, error
+      - MAVT_LOG_LEVEL=info
+
+      # Data directory inside container
+      - MAVT_DATA_DIR=/app/data
+
+      # Server configuration
+      - MAVT_SERVER_PORT=8080
+
+    volumes:
+      # Persist tracking data
+      - ./data:/app/data
+
+    ports:
+      - "7738:8080"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "test", "-f", "/app/data/apps/*.json"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# Example: Run one-time check instead of daemon
+# Uncomment to use this configuration
+#   mavt-check:
+#     build: .
+#     image: mavt:latest
+#     container_name: mavt-check
+#     environment:
+#       - MAVT_APPS=com.apple.mobilesafari
+#     volumes:
+#       - ./data:/app/data
+#     command: ["-check"]

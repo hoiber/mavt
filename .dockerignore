@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+CLAUDE.md
+LICENSE
+
+# IDE
+.vscode
+.idea
+
+# Data
+data/
+*.json
+
+# Build artifacts
+mavt
+*.exe
+*.test
+*.out
+
+# Environment
+.env
