@@ -3,12 +3,28 @@ package tracker
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/thomas/mavt/internal/appstore"
 	"github.com/thomas/mavt/internal/storage"
 	"github.com/thomas/mavt/pkg/models"
 )
+
+// sanitizeForLog removes newlines and control characters to prevent log injection attacks
+func sanitizeForLog(s string) string {
+	// Replace newlines and carriage returns with spaces
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	// Remove other control characters (ASCII 0-31 except space)
+	var result strings.Builder
+	for _, r := range s {
+		if r >= 32 || r == '\t' {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
+}
 
 // Tracker monitors app versions and detects updates
 type Tracker struct {
@@ -39,7 +55,8 @@ func (t *Tracker) TrackApp(bundleID string) error {
 
 	if existing == nil {
 		// First time tracking this app
-		log.Printf("Now tracking %s (%s) - version %s", app.TrackName, app.BundleID, app.Version)
+		log.Printf("Now tracking %s (%s) - version %s",
+			sanitizeForLog(app.TrackName), sanitizeForLog(app.BundleID), sanitizeForLog(app.Version))
 	} else {
 		// Update first discovered time
 		app.FirstDiscovered = existing.FirstDiscovered
@@ -64,7 +81,7 @@ func (t *Tracker) CheckForUpdates() ([]models.VersionUpdate, error) {
 	for _, app := range apps {
 		update, err := t.checkSingleApp(app)
 		if err != nil {
-			log.Printf("Error checking %s: %v", app.BundleID, err)
+			log.Printf("Error checking %s: %v", sanitizeForLog(app.BundleID), err)
 			continue
 		}
 
@@ -100,7 +117,9 @@ func (t *Tracker) checkSingleApp(existingApp *models.AppInfo) (*models.VersionUp
 		}
 
 		log.Printf("Version update detected for %s: %s -> %s",
-			currentApp.TrackName, existingApp.Version, currentApp.Version)
+			sanitizeForLog(currentApp.TrackName),
+			sanitizeForLog(existingApp.Version),
+			sanitizeForLog(currentApp.Version))
 
 		// Save the update
 		if err := t.storage.SaveVersionUpdate(update); err != nil {

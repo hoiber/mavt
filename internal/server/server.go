@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/thomas/mavt/internal/appstore"
@@ -13,6 +14,21 @@ import (
 	"github.com/thomas/mavt/internal/version"
 	"github.com/thomas/mavt/pkg/models"
 )
+
+// sanitizeForLog removes newlines and control characters to prevent log injection attacks
+func sanitizeForLog(s string) string {
+	// Replace newlines and carriage returns with spaces
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	// Remove other control characters (ASCII 0-31 except space)
+	var result strings.Builder
+	for _, r := range s {
+		if r >= 32 || r == '\t' {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
+}
 
 // Server handles HTTP requests
 type Server struct {
@@ -660,7 +676,7 @@ func (s *Server) handleTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Added app to tracking via API: %s", req.BundleID)
+	log.Printf("Added app to tracking via API: %s", sanitizeForLog(req.BundleID))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
