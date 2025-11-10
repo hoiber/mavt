@@ -1,7 +1,7 @@
 package version
 
 // Version is the current version of MAVT
-const Version = "1.0.3"
+const Version = "1.1.4"
 
 // BuildDate is set during build time
 var BuildDate = "unknown"

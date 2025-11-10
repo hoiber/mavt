@@ -5,6 +5,27 @@ All notable changes to MAVT (Mobile App Version Tracker) will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2025-11-10
+
+### Added
+- **GitHub Link**: Added GitHub repository link button in header for easy access to source code
+
+### Changed
+- **Modern UI Design**: Complete redesign with clean, modern aesthetic
+  - Updated to modern blue color scheme (`#0066ff`) inspired by GitHub's design
+  - Light mode: Clean light gray backgrounds with subtle borders
+  - Dark mode: Deep dark backgrounds (`#0d1117`) with bright blue accents
+- **Streamlined Header**: Redesigned header to be thinner and more compact
+  - Reduced padding by 40% (from 20px to 12px)
+  - Changed to horizontal layout with left/center/right sections
+  - Removed subtitle for cleaner appearance
+  - Title size reduced from 1.8em to 1.3em
+- **Improved Visual Elements**:
+  - Enhanced button hover effects with lift animation and subtle glow
+  - Better card shadows and borders for depth
+  - Refined typography and spacing throughout
+  - Version badges now use modern blue styling
+
 ## [1.0.3] - 2025-11-10
 
 ### Added

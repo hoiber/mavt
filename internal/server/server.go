@@ -89,47 +89,47 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
-            --bg-primary: #f5f5f5;
+            --bg-primary: #f8f9fa;
             --bg-secondary: #ffffff;
             --bg-card: #ffffff;
-            --text-primary: #333;
-            --text-secondary: #666;
-            --text-muted: #999;
-            --border-color: #ddd;
-            --accent-primary: #667eea;
-            --accent-secondary: #764ba2;
-            --success-bg: #e8f5e9;
-            --success-text: #2e7d32;
-            --success-border: #4caf50;
-            --error-bg: #ffebee;
-            --error-text: #c62828;
-            --error-border: #c62828;
-            --update-bg: #e8f5e9;
-            --update-border: #4caf50;
-            --release-notes-bg: #f5f5f5;
-            --search-result-bg: #f9f9f9;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6c757d;
+            --text-muted: #adb5bd;
+            --border-color: #e9ecef;
+            --accent-primary: #0066ff;
+            --accent-secondary: #0052cc;
+            --success-bg: #d1f4e0;
+            --success-text: #0d7a3f;
+            --success-border: #0d7a3f;
+            --error-bg: #ffe0e0;
+            --error-text: #d32f2f;
+            --error-border: #d32f2f;
+            --update-bg: #d1f4e0;
+            --update-border: #0d7a3f;
+            --release-notes-bg: #f8f9fa;
+            --search-result-bg: #f8f9fa;
         }
 
         [data-theme="dark"] {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #2d2d2d;
-            --bg-card: #2d2d2d;
-            --text-primary: #e0e0e0;
-            --text-secondary: #b0b0b0;
-            --text-muted: #808080;
-            --border-color: #404040;
-            --accent-primary: #667eea;
-            --accent-secondary: #764ba2;
-            --success-bg: #1b3a1f;
-            --success-text: #81c784;
-            --success-border: #4caf50;
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #161b22;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --border-color: #30363d;
+            --accent-primary: #58a6ff;
+            --accent-secondary: #1f6feb;
+            --success-bg: #0d3320;
+            --success-text: #3fb950;
+            --success-border: #3fb950;
             --error-bg: #3d1f1f;
-            --error-text: #ef5350;
-            --error-border: #c62828;
-            --update-bg: #1b3a1f;
-            --update-border: #4caf50;
-            --release-notes-bg: #242424;
-            --search-result-bg: #353535;
+            --error-text: #ff7b72;
+            --error-border: #ff7b72;
+            --update-bg: #0d3320;
+            --update-border: #3fb950;
+            --release-notes-bg: #0d1117;
+            --search-result-bg: #161b22;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -148,21 +148,58 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         }
         header {
             background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            color: white;
-            padding: 20px 16px;
-            text-align: center;
+            color: #ffffff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             border-radius: 8px;
             margin-bottom: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             position: relative;
         }
-        .theme-toggle {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(255, 255, 255, 0.2);
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-center {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+        }
+        .github-link {
+            background: rgba(255, 255, 255, 0.15);
             border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        .github-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+        }
+        .github-link svg {
+            width: 18px;
+            height: 18px;
+            fill: #fff;
+        }
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
             width: 32px;
             height: 32px;
             border-radius: 50%;
@@ -174,17 +211,26 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             transition: all 0.3s;
         }
         .theme-toggle:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.25);
             transform: scale(1.1);
         }
-        h1 { font-size: 1.8em; margin-bottom: 4px; }
-        .subtitle { font-size: 0.95em; opacity: 0.9; }
+        h1 {
+            font-size: 1.3em;
+            margin: 0;
+            font-weight: 600;
+        }
+        .subtitle {
+            font-size: 0.85em;
+            opacity: 0.9;
+            margin: 0;
+        }
         .section {
             background: var(--bg-card);
             padding: 16px;
             margin-bottom: 12px;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
             transition: background-color 0.3s;
         }
         h2 {
@@ -237,7 +283,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         }
         .version {
             background: var(--accent-primary);
-            color: white;
+            color: #ffffff;
             padding: 3px 10px;
             border-radius: 12px;
             display: inline-block;
@@ -349,15 +395,18 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         .btn {
             padding: 6px 16px;
             background: var(--accent-primary);
-            color: white;
+            color: #ffffff;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 13px;
-            transition: background 0.3s;
+            font-weight: 600;
+            transition: all 0.2s ease;
         }
         .btn:hover {
             background: var(--accent-secondary);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 102, 255, 0.3);
         }
         .btn:disabled {
             background: var(--text-muted);
@@ -477,7 +526,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         .modal-header {
             padding: 14px 20px;
             background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            color: white;
+            color: #ffffff;
             border-radius: 8px 8px 0 0;
         }
         .modal-header h2 {
@@ -572,9 +621,19 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 <body>
     <div class="container">
         <header>
-            <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
-            <h1>📱 MAVT</h1>
-            <p class="subtitle">Mobile App Version Tracker</p>
+            <div class="header-left">
+                <a href="https://github.com/hoiber/mavt" target="_blank" rel="noopener noreferrer" class="github-link" aria-label="View on GitHub">
+                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="header-center">
+                <h1>📱 MAVT</h1>
+            </div>
+            <div class="header-right">
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+            </div>
         </header>
 
         <div class="section">
