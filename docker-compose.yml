@@ -14,6 +14,10 @@ services:
       # How often to check for updates
       - MAVT_CHECK_INTERVAL=4h
 
+      # App Store country/region (ISO 3166-1 alpha-2 code)
+      # Examples: US, GB, AU, CA, DE, FR, JP, etc.
+      - MAVT_COUNTRY=AU
+
       # Log level: debug, info, warn, error
       - MAVT_LOG_LEVEL=info
 

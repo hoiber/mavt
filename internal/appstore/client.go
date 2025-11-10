@@ -19,6 +19,7 @@ const (
 // Client handles communication with the App Store API
 type Client struct {
 	httpClient *http.Client
+	country    string
 }
 
 // NewClient creates a new App Store API client
@@ -27,6 +28,20 @@ func NewClient() *Client {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		country: "us",
+	}
+}
+
+// NewClientWithCountry creates a new App Store API client with a specific country
+func NewClientWithCountry(country string) *Client {
+	if country == "" {
+		country = "us"
+	}
+	return &Client{
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		country: country,
 	}
 }
 
@@ -56,7 +71,7 @@ func (c *Client) LookupByBundleID(bundleID string) (*models.AppInfo, error) {
 	params := url.Values{}
 	params.Add("bundleId", bundleID)
 	params.Add("entity", "software")
-	params.Add("country", "us")
+	params.Add("country", c.country)
 
 	resp, err := c.httpClient.Get(lookupURL + "?" + params.Encode())
 	if err != nil {
@@ -86,7 +101,7 @@ func (c *Client) LookupByTrackID(trackID int64) (*models.AppInfo, error) {
 	params := url.Values{}
 	params.Add("id", fmt.Sprintf("%d", trackID))
 	params.Add("entity", "software")
-	params.Add("country", "us")
+	params.Add("country", c.country)
 
 	resp, err := c.httpClient.Get(lookupURL + "?" + params.Encode())
 	if err != nil {
@@ -123,7 +138,7 @@ func (c *Client) SearchApps(term string, limit int) ([]*models.AppInfo, error) {
 	params := url.Values{}
 	params.Add("term", term)
 	params.Add("entity", "software")
-	params.Add("country", "us")
+	params.Add("country", c.country)
 	params.Add("limit", fmt.Sprintf("%d", limit))
 
 	resp, err := c.httpClient.Get(searchURL + "?" + params.Encode())

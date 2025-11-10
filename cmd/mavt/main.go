@@ -62,7 +62,7 @@ func main() {
 	}
 
 	// Initialize tracker
-	tr := tracker.NewTracker(store, notify)
+	tr := tracker.NewTracker(cfg, store, notify)
 
 	// Handle commands
 	switch {

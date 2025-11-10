@@ -28,6 +28,9 @@ type Config struct {
 
 	// Apprise notification URL
 	AppriseURL string
+
+	// App Store country/region (ISO 3166-1 alpha-2 code)
+	Country string
 }
 
 // Load loads configuration from environment variables
@@ -39,6 +42,7 @@ func Load() (*Config, error) {
 		ServerPort:    parseInt(getEnv("MAVT_SERVER_PORT", "8080"), 8080),
 		ServerHost:    getEnv("MAVT_SERVER_HOST", "0.0.0.0"),
 		AppriseURL:    getEnv("MAVT_APPRISE_URL", ""),
+		Country:       getEnv("MAVT_COUNTRY", "AU"),
 	}
 
 	// Parse apps list from environment

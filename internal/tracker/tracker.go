@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/thomas/mavt/internal/appstore"
+	"github.com/thomas/mavt/internal/config"
 	"github.com/thomas/mavt/internal/notifier"
 	"github.com/thomas/mavt/internal/storage"
 	"github.com/thomas/mavt/pkg/models"
@@ -35,9 +36,9 @@ type Tracker struct {
 }
 
 // NewTracker creates a new app version tracker
-func NewTracker(storage *storage.Storage, notifier *notifier.Notifier) *Tracker {
+func NewTracker(cfg *config.Config, storage *storage.Storage, notifier *notifier.Notifier) *Tracker {
 	return &Tracker{
-		client:   appstore.NewClient(),
+		client:   appstore.NewClientWithCountry(cfg.Country),
 		storage:  storage,
 		notifier: notifier,
 	}

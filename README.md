@@ -192,6 +192,7 @@ Configure via environment variables (see [.env.example](.env.example)):
 |----------|-------------|---------|
 | `MAVT_APPS` | Comma-separated list of bundle IDs to track | - |
 | `MAVT_CHECK_INTERVAL` | How often to check for updates | `1h` |
+| `MAVT_COUNTRY` | App Store country/region (ISO 3166-1 alpha-2 code) | `AU` |
 | `MAVT_DATA_DIR` | Directory for storing data | `./data` |
 | `MAVT_LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
 | `MAVT_SERVER_PORT` | HTTP server port | `8080` |

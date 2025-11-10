@@ -5,6 +5,23 @@ All notable changes to MAVT (Mobile App Version Tracker) will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2025-11-10
+
+### Added
+- **Regional Support**: Added `MAVT_COUNTRY` environment variable to specify App Store region
+  - Defaults to `AU` (Australia)
+  - Supports any ISO 3166-1 alpha-2 country code (e.g., US, GB, CA, DE, FR, JP)
+  - Fetches region-specific app metadata, release notes, and pricing
+  - Configured via `MAVT_COUNTRY` in docker-compose.yml and environment variables
+
+### Changed
+- **App Store Client**: Updated to use country parameter in all API calls
+  - `LookupByBundleID()` now uses configured country
+  - `LookupByTrackID()` now uses configured country
+  - `SearchApps()` now uses configured country
+- **Tracker**: Updated to accept config parameter and pass country to App Store client
+- **Documentation**: Added `MAVT_COUNTRY` to README.md configuration table
+
 ## [1.0.2] - 2025-11-10
 
 ### Fixed
