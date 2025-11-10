@@ -666,7 +666,7 @@ func (s *Server) handleTrack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		BundleID string `json:"` + bundleIDField + `"`
+		BundleID string `json:"bundle_id"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -686,11 +686,11 @@ func (s *Server) handleTrack(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Added app to tracking via API: %s", sanitizeForLog(req.BundleID))
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentTypeHeader, contentTypeJSON)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":   true,
-		"bundle_id": req.BundleID,
-		"message":   "App successfully added to tracking",
+		"success":     true,
+		bundleIDField: req.BundleID,
+		"message":     "App successfully added to tracking",
 	})
 }
