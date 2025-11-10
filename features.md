@@ -1,5 +1,5 @@
 # Backend
-notification of updates via apprise
+~~notification of updates via apprise~~
 ability to detect when the update is a critical bug fix
 set to australian region if possible
 

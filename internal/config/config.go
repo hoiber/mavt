@@ -25,6 +25,9 @@ type Config struct {
 	// Server settings (for future HTTP API)
 	ServerPort int
 	ServerHost string
+
+	// Apprise notification URL
+	AppriseURL string
 }
 
 // Load loads configuration from environment variables
@@ -35,6 +38,7 @@ func Load() (*Config, error) {
 		LogLevel:      getEnv("MAVT_LOG_LEVEL", "info"),
 		ServerPort:    parseInt(getEnv("MAVT_SERVER_PORT", "8080"), 8080),
 		ServerHost:    getEnv("MAVT_SERVER_HOST", "0.0.0.0"),
+		AppriseURL:    getEnv("MAVT_APPRISE_URL", ""),
 	}
 
 	// Parse apps list from environment

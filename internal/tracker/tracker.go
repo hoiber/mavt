@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/thomas/mavt/internal/appstore"
+	"github.com/thomas/mavt/internal/notifier"
 	"github.com/thomas/mavt/internal/storage"
 	"github.com/thomas/mavt/pkg/models"
 )
@@ -28,15 +29,17 @@ func sanitizeForLog(s string) string {
 
 // Tracker monitors app versions and detects updates
 type Tracker struct {
-	client  *appstore.Client
-	storage *storage.Storage
+	client   *appstore.Client
+	storage  *storage.Storage
+	notifier *notifier.Notifier
 }
 
 // NewTracker creates a new app version tracker
-func NewTracker(storage *storage.Storage) *Tracker {
+func NewTracker(storage *storage.Storage, notifier *notifier.Notifier) *Tracker {
 	return &Tracker{
-		client:  appstore.NewClient(),
-		storage: storage,
+		client:   appstore.NewClient(),
+		storage:  storage,
+		notifier: notifier,
 	}
 }
 
@@ -87,6 +90,14 @@ func (t *Tracker) CheckForUpdates() ([]models.VersionUpdate, error) {
 
 		if update != nil {
 			updates = append(updates, *update)
+		}
+	}
+
+	// Send notifications if updates were found
+	if len(updates) > 0 && t.notifier.IsEnabled() {
+		if err := t.notifier.NotifyUpdates(updates); err != nil {
+			log.Printf("Failed to send notifications: %v", err)
+			// Don't fail the whole operation if notification fails
 		}
 	}
 

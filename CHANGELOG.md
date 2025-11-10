@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Notifications**:
+  - Apprise integration for sending notifications when updates are detected
+  - Support for 80+ notification services (Discord, Slack, Telegram, email, etc.)
+  - Single and batch notification formatting
+  - Configurable via `MAVT_APPRISE_URL` environment variable
+  - Automatic notification sending on update detection
+
+## [1.1.2] - 2025-11-10
+
+### Added
+- **Web Interface Enhancements**:
+  - Version history modal - Click any tracked app to view complete version update history
+  - Interactive version history table showing date, version changes, and release notes
+  - `/api/history?bundle_id=<id>` endpoint for retrieving app version history
+  - Collapsible release notes in both Tracked Apps and Recent Updates sections
+  - Dark mode toggle with localStorage persistence
+  - App cards now have hover effects and visual feedback
+
+### Changed
+- Reordered web UI sections - Recent Updates now appears above Tracked Apps
+- Removed API Endpoints section from web interface (API remains functional)
+- App cards are now clickable to view version history
+
 ## [1.1.0] - 2025-11-10
 
 ### Added

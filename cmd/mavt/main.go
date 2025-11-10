@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/thomas/mavt/internal/config"
+	"github.com/thomas/mavt/internal/notifier"
 	"github.com/thomas/mavt/internal/server"
 	"github.com/thomas/mavt/internal/storage"
 	"github.com/thomas/mavt/internal/tracker"
@@ -54,8 +55,14 @@ func main() {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 
+	// Initialize notifier
+	notify := notifier.NewNotifier(cfg.AppriseURL)
+	if notify.IsEnabled() {
+		log.Printf("Notifications enabled via Apprise")
+	}
+
 	// Initialize tracker
-	tr := tracker.NewTracker(store)
+	tr := tracker.NewTracker(store, notify)
 
 	// Handle commands
 	switch {

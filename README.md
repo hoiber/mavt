@@ -10,6 +10,7 @@ A Go application that tracks Apple App Store app version updates. Run it as a CL
 - 📝 Store complete version history with release notes
 - ⏰ Daemon mode for continuous monitoring
 - 🌐 Web dashboard with real-time updates
+- 🔔 **Apprise notifications** - Get notified via Discord, Slack, email, Telegram, and 80+ services
 - 🔌 REST API for programmatic access
 - 🐳 Docker support with docker-compose
 - 💾 Simple JSON file-based storage
@@ -155,6 +156,52 @@ Configure via environment variables (see [.env.example](.env.example)):
 | `MAVT_LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
 | `MAVT_SERVER_PORT` | HTTP server port | `8080` |
 | `MAVT_SERVER_HOST` | HTTP server host | `0.0.0.0` |
+| `MAVT_APPRISE_URL` | Apprise notification URL (optional) | - |
+
+## Notifications
+
+MAVT supports sending notifications via [Apprise](https://github.com/caronc/apprise) when app updates are detected. You can send notifications to Discord, Slack, email, Telegram, and 80+ other services.
+
+### Setup with Apprise API
+
+1. Run Apprise API service:
+```bash
+docker run -d -p 8000:8000 --name apprise caronc/apprise
+```
+
+2. Configure MAVT with the Apprise URL:
+```bash
+# In docker-compose.yml or .env
+MAVT_APPRISE_URL=http://apprise:8000/notify
+```
+
+3. Configure your notification services in Apprise
+
+### Direct Service URLs
+
+You can also use direct service URLs without running Apprise API:
+
+```bash
+# Discord webhook
+MAVT_APPRISE_URL=discord://webhook_id/webhook_token
+
+# Slack webhook
+MAVT_APPRISE_URL=slack://TokenA/TokenB/TokenC
+
+# Telegram
+MAVT_APPRISE_URL=tgram://bot_token/chat_id
+
+# Email (SMTP)
+MAVT_APPRISE_URL=mailto://user:pass@smtp.gmail.com
+```
+
+For more service URLs, see the [Apprise URL documentation](https://github.com/caronc/apprise/wiki).
+
+### Notification Format
+
+When updates are detected, MAVT sends notifications with:
+- **Single update**: App name, version change, and release notes (truncated if long)
+- **Multiple updates**: Summary of all updates (up to 10 shown, then "... and X more")
 
 ## Data Storage
 
