@@ -191,23 +191,6 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             border-radius: 8px;
             border-left: 4px solid #c62828;
         }
-        .api-links {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .api-link {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
-        .api-link:hover {
-            background: #764ba2;
-        }
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -346,15 +329,6 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         <div class="section">
             <h2>Tracked Apps</h2>
             <div id="apps" class="loading">Loading apps...</div>
-        </div>
-
-        <div class="section">
-            <h2>API Endpoints</h2>
-            <div class="api-links">
-                <a href="/api/apps" class="api-link">View All Apps (JSON)</a>
-                <a href="/api/updates?since=24h" class="api-link">Recent Updates (JSON)</a>
-                <a href="/api/health" class="api-link">Health Check</a>
-            </div>
         </div>
     </div>
 
