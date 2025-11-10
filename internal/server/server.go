@@ -374,11 +374,12 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                     return;
                 }
 
-                container.innerHTML = apps.map(app => {
+                container.innerHTML = apps.map((app, index) => {
                     let releaseNotesHtml = '';
                     if (app.release_notes && app.release_notes.trim()) {
-                        releaseNotesHtml = '<div class="release-notes">' +
-                            '<span class="release-notes-label">Latest Release Notes (v' + app.version + '):</span>' +
+                        const notesId = 'app-notes-' + index;
+                        releaseNotesHtml = '<span class="toggle-notes" onclick="toggleNotes(\'' + notesId + '\', this)">Latest Release Notes (v' + app.version + ') ▼</span>' +
+                            '<div class="release-notes" id="' + notesId + '" style="display:none;">' +
                             app.release_notes +
                         '</div>';
                     }
@@ -526,12 +527,24 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 
         function toggleNotes(notesId, toggleElement) {
             const notesDiv = document.getElementById(notesId);
+            const currentText = toggleElement.textContent;
+
             if (notesDiv.style.display === 'none') {
                 notesDiv.style.display = 'block';
-                toggleElement.textContent = 'Hide release notes ▲';
+                // Replace ▼ with ▲ and update show/hide text
+                if (currentText.includes('Latest Release Notes')) {
+                    toggleElement.textContent = currentText.replace('▼', '▲');
+                } else {
+                    toggleElement.textContent = 'Hide release notes ▲';
+                }
             } else {
                 notesDiv.style.display = 'none';
-                toggleElement.textContent = 'Show release notes ▼';
+                // Replace ▲ with ▼ and update show/hide text
+                if (currentText.includes('Latest Release Notes')) {
+                    toggleElement.textContent = currentText.replace('▲', '▼');
+                } else {
+                    toggleElement.textContent = 'Show release notes ▼';
+                }
             }
         }
 
