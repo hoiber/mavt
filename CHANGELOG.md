@@ -5,6 +5,20 @@ All notable changes to MAVT (Mobile App Version Tracker) will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-11-10
+
+### Changed
+- **Security**: Pinned GitHub Actions to full commit hashes for improved security
+  - `actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683` (v4.2.2)
+  - `docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349` (v3.7.1)
+  - `docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567` (v3.3.0)
+  - `docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81` (v5.5.1)
+  - `docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75` (v6.9.0)
+  - `actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c` (v1.4.3)
+
+### Fixed
+- Added missing `id` to build-and-push step for attestation reference
+
 ## [1.0.0] - 2025-11-10
 
 ### Added
