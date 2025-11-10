@@ -135,38 +135,39 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
+            line-height: 1.4;
             color: var(--text-primary);
             background: var(--bg-primary);
             transition: background-color 0.3s, color 0.3s;
+            font-size: 18px;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1820px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 16px;
         }
         header {
             background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
             color: white;
-            padding: 40px 20px;
+            padding: 20px 16px;
             text-align: center;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative;
         }
         .theme-toggle {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 12px;
+            right: 12px;
             background: rgba(255, 255, 255, 0.2);
             border: 2px solid rgba(255, 255, 255, 0.3);
             color: white;
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -176,107 +177,139 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.1);
         }
-        h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .subtitle { font-size: 1.2em; opacity: 0.9; }
+        h1 { font-size: 1.8em; margin-bottom: 4px; }
+        .subtitle { font-size: 0.95em; opacity: 0.9; }
         .section {
             background: var(--bg-card);
-            padding: 30px;
-            margin-bottom: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             transition: background-color 0.3s;
         }
         h2 {
             color: var(--accent-primary);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 2px solid var(--border-color);
+            font-size: 1.3em;
         }
         .app-card {
             background: var(--search-result-bg);
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            border-left: 4px solid var(--accent-primary);
+            padding: 10px 12px;
+            margin: 6px 0;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-primary);
             transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
         }
         .app-name {
-            font-size: 1.3em;
+            font-size: 1em;
             font-weight: bold;
             color: var(--text-primary);
-            margin-bottom: 10px;
+            min-width: 200px;
+            flex: 0 0 auto;
         }
         .app-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+            flex-wrap: wrap;
         }
         .detail {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
         }
         .detail-label {
-            font-size: 0.85em;
+            font-size: 0.75em;
             color: var(--text-secondary);
-            margin-bottom: 3px;
         }
         .detail-value {
             font-weight: 500;
             color: var(--text-primary);
+            font-size: 0.85em;
         }
         .version {
             background: var(--accent-primary);
             color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
+            padding: 3px 10px;
+            border-radius: 12px;
             display: inline-block;
             font-weight: bold;
+            font-size: 0.9em;
+        }
+        .version.critical {
+            background: #dc3545;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
         }
         .update-card {
             background: var(--update-bg);
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border-left: 4px solid var(--update-border);
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 6px;
+            border-left: 3px solid var(--update-border);
             transition: background-color 0.3s;
+        }
+        .update-card.critical {
+            border-left: 3px solid #dc3545;
+            background: rgba(220, 53, 69, 0.1);
         }
         .update-header {
             font-weight: bold;
             color: var(--success-text);
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+            font-size: 0.95em;
+        }
+        .update-header.critical {
+            color: #dc3545;
+        }
+        .update-header.critical::before {
+            content: '🔴 ';
         }
         .update-time {
             color: var(--text-secondary);
-            font-size: 0.9em;
+            font-size: 0.8em;
         }
         .loading {
             text-align: center;
-            padding: 40px;
+            padding: 24px;
             color: var(--text-secondary);
+            font-size: 0.9em;
         }
         .error {
             background: var(--error-bg);
             color: var(--error-text);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid var(--error-border);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--error-border);
             transition: background-color 0.3s;
+            font-size: 0.9em;
         }
         .empty-state {
             text-align: center;
-            padding: 40px;
+            padding: 24px;
             color: var(--text-muted);
+            font-size: 0.9em;
         }
         .search-box {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
         .search-input {
             width: 100%;
-            padding: 12px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 14px;
             border: 2px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 6px;
             box-sizing: border-box;
             background: var(--bg-secondary);
             color: var(--text-primary);
@@ -287,17 +320,17 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             border-color: var(--accent-primary);
         }
         .search-results {
-            margin-top: 15px;
+            margin-top: 10px;
         }
         .search-result-card {
             background: var(--search-result-bg);
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-left: 4px solid var(--accent-primary);
+            border-left: 3px solid var(--accent-primary);
             transition: background-color 0.3s;
         }
         .search-result-info {
@@ -305,22 +338,22 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         }
         .search-result-name {
             font-weight: bold;
-            font-size: 1.1em;
-            margin-bottom: 5px;
+            font-size: 1em;
+            margin-bottom: 3px;
             color: var(--text-primary);
         }
         .search-result-details {
             color: var(--text-secondary);
-            font-size: 0.9em;
+            font-size: 0.8em;
         }
         .btn {
-            padding: 8px 20px;
+            padding: 6px 16px;
             background: var(--accent-primary);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             transition: background 0.3s;
         }
         .btn:hover {
@@ -336,50 +369,55 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         .success-message {
             background: var(--success-bg);
             color: var(--success-text);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid var(--success-border);
-            margin: 10px 0;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--success-border);
+            margin: 8px 0;
             transition: background-color 0.3s;
+            font-size: 0.9em;
         }
         .release-notes {
             background: var(--release-notes-bg);
-            padding: 12px;
-            margin-top: 12px;
-            border-radius: 6px;
-            font-size: 0.9em;
-            color: var(--text-secondary);
-            line-height: 1.5;
-            white-space: pre-wrap;
-            border-left: 3px solid var(--accent-primary);
-            transition: background-color 0.3s;
-        }
-        .release-notes-label {
-            font-weight: bold;
-            color: var(--accent-primary);
-            margin-bottom: 8px;
-            display: block;
-        }
-        .update-notes {
-            background: var(--release-notes-bg);
             padding: 10px;
             margin-top: 8px;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 0.85em;
             color: var(--text-secondary);
             line-height: 1.4;
             white-space: pre-wrap;
-            max-height: 150px;
+            border-left: 2px solid var(--accent-primary);
+            transition: background-color 0.3s;
+            flex-basis: 100%;
+        }
+        .release-notes-label {
+            font-weight: bold;
+            color: var(--accent-primary);
+            margin-bottom: 6px;
+            display: block;
+            font-size: 0.9em;
+        }
+        .update-notes {
+            background: var(--release-notes-bg);
+            padding: 8px;
+            margin-top: 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            line-height: 1.3;
+            white-space: pre-wrap;
+            max-height: 120px;
             overflow-y: auto;
             transition: background-color 0.3s;
         }
         .toggle-notes {
             color: var(--accent-primary);
             cursor: pointer;
-            font-size: 0.9em;
-            margin-top: 5px;
+            font-size: 0.85em;
+            margin-left: auto;
             display: inline-block;
             text-decoration: underline;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         .toggle-notes:hover {
             color: var(--accent-secondary);
@@ -416,19 +454,19 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         }
         .modal-content {
             background-color: var(--bg-card);
-            margin: 5% auto;
+            margin: 3% auto;
             padding: 0;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 900px;
-            max-height: 80vh;
+            border-radius: 8px;
+            width: 92%;
+            max-width: 1000px;
+            max-height: 85vh;
             overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             animation: slideIn 0.3s;
         }
         @keyframes slideIn {
             from {
-                transform: translateY(-50px);
+                transform: translateY(-30px);
                 opacity: 0;
             }
             to {
@@ -437,24 +475,24 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             }
         }
         .modal-header {
-            padding: 20px 30px;
+            padding: 14px 20px;
             background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
             color: white;
-            border-radius: 12px 12px 0 0;
+            border-radius: 8px 8px 0 0;
         }
         .modal-header h2 {
             margin: 0;
-            font-size: 1.5em;
+            font-size: 1.2em;
         }
         .modal-header p {
-            margin: 5px 0 0 0;
+            margin: 3px 0 0 0;
             opacity: 0.9;
-            font-size: 0.9em;
+            font-size: 0.8em;
         }
         .close {
             color: white;
             float: right;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             cursor: pointer;
             line-height: 1;
@@ -465,63 +503,69 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             opacity: 1;
         }
         .modal-body {
-            padding: 30px;
-            max-height: calc(80vh - 120px);
+            padding: 16px;
+            max-height: calc(85vh - 90px);
             overflow-y: auto;
         }
         .history-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 6px;
+            font-size: 0.9em;
         }
         .history-table th {
             background: var(--bg-primary);
             color: var(--text-primary);
-            padding: 12px;
+            padding: 8px 10px;
             text-align: left;
             font-weight: 600;
             border-bottom: 2px solid var(--border-color);
             position: sticky;
             top: 0;
+            font-size: 0.85em;
         }
         .history-table td {
-            padding: 12px;
+            padding: 8px 10px;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-primary);
+            font-size: 0.85em;
         }
         .history-table tr:hover {
             background: var(--search-result-bg);
         }
         .version-badge {
             display: inline-block;
-            padding: 4px 10px;
+            padding: 3px 8px;
             background: var(--accent-primary);
             color: white;
             border-radius: 4px;
-            font-size: 0.9em;
+            font-size: 0.85em;
             font-weight: 500;
         }
         .version-arrow {
             color: var(--text-muted);
-            margin: 0 8px;
+            margin: 0 6px;
+            font-size: 0.9em;
         }
         .history-notes {
             max-width: 400px;
             white-space: pre-wrap;
-            font-size: 0.85em;
+            font-size: 0.8em;
             color: var(--text-secondary);
-            line-height: 1.4;
+            line-height: 1.3;
         }
         .empty-history {
             text-align: center;
-            padding: 40px;
+            padding: 24px;
             color: var(--text-muted);
             font-style: italic;
+            font-size: 0.9em;
         }
         .loading-history {
             text-align: center;
-            padding: 40px;
+            padding: 24px;
             color: var(--text-secondary);
+            font-size: 0.9em;
         }
     </style>
 </head>
@@ -566,7 +610,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         </div>
     </div>
 
-    <footer style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9em;">
+    <footer style="text-align: center; padding: 12px; color: var(--text-muted); font-size: 0.8em;">
         MAVT v` + version.Version + ` &bull; <a href="https://github.com/thomas/mavt">GitHub</a>
     </footer>
 
@@ -583,36 +627,39 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                 }
 
                 container.innerHTML = apps.map((app, index) => {
-                    let releaseNotesHtml = '';
+                    let releaseNotesToggle = '';
+                    let releaseNotesContent = '';
+                    let isCritical = false;
                     if (app.release_notes && app.release_notes.trim()) {
                         const notesId = 'app-notes-' + index;
-                        releaseNotesHtml = '<span class="toggle-notes" onclick="event.stopPropagation(); toggleNotes(\'' + notesId + '\', this)">Latest Release Notes (v' + app.version + ') ▼</span>' +
-                            '<div class="release-notes" id="' + notesId + '" style="display:none;">' +
+                        // Check if release notes contain CVE
+                        isCritical = app.release_notes.toUpperCase().includes('CVE');
+                        releaseNotesToggle = '<span class="toggle-notes" onclick="event.stopPropagation(); toggleNotes(\'' + notesId + '\', this)">Latest Release Notes (v' + app.version + ') ▼</span>';
+                        releaseNotesContent = '<div class="release-notes" id="' + notesId + '" style="display:none;">' +
                             app.release_notes +
                         '</div>';
                     }
 
+                    const versionClass = isCritical ? 'version critical' : 'version';
                     return '<div class="app-card" onclick="showVersionHistory(\'' + app.bundle_id + '\', \'' + app.track_name.replace(/'/g, "\\'") + '\', \'' + app.artist_name.replace(/'/g, "\\'") + '\')">' +
                         '<div class="app-name">' + app.track_name + '</div>' +
+                        '<span class="' + versionClass + '">' + app.version + '</span>' +
                         '<div class="app-details">' +
                             '<div class="detail">' +
-                                '<span class="detail-label">Version</span>' +
-                                '<span class="version">' + app.version + '</span>' +
-                            '</div>' +
-                            '<div class="detail">' +
-                                '<span class="detail-label">Bundle ID</span>' +
+                                '<span class="detail-label">Bundle:</span>' +
                                 '<span class="detail-value">' + app.bundle_id + '</span>' +
                             '</div>' +
                             '<div class="detail">' +
-                                '<span class="detail-label">Developer</span>' +
+                                '<span class="detail-label">Dev:</span>' +
                                 '<span class="detail-value">' + app.artist_name + '</span>' +
                             '</div>' +
                             '<div class="detail">' +
-                                '<span class="detail-label">Last Checked</span>' +
+                                '<span class="detail-label">Checked:</span>' +
                                 '<span class="detail-value">' + new Date(app.last_checked).toLocaleString() + '</span>' +
                             '</div>' +
                         '</div>' +
-                        releaseNotesHtml +
+                        releaseNotesToggle +
+                        releaseNotesContent +
                     '</div>';
                 }).join('');
             } catch (error) {
@@ -634,16 +681,21 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 
                 container.innerHTML = updates.map((update, index) => {
                     let notesHtml = '';
+                    let isCritical = false;
                     if (update.release_notes && update.release_notes.trim()) {
                         const notesId = 'notes-' + index;
+                        // Check if release notes contain CVE
+                        isCritical = update.release_notes.toUpperCase().includes('CVE');
                         notesHtml = '<div class="update-notes" id="' + notesId + '" style="display:none;">' +
                             update.release_notes +
                         '</div>' +
                         '<span class="toggle-notes" onclick="toggleNotes(\'' + notesId + '\', this)">Show release notes ▼</span>';
                     }
 
-                    return '<div class="update-card">' +
-                        '<div class="update-header">' +
+                    const cardClass = isCritical ? 'update-card critical' : 'update-card';
+                    const headerClass = isCritical ? 'update-header critical' : 'update-header';
+                    return '<div class="' + cardClass + '">' +
+                        '<div class="' + headerClass + '">' +
                             update.track_name + ': ' + update.old_version + ' → ' + update.new_version +
                         '</div>' +
                         '<div class="update-time">' + new Date(update.updated_at).toLocaleString() + '</div>' +

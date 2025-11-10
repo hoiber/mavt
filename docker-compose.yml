@@ -12,7 +12,7 @@ services:
       - MAVT_APPS=com.apple.mobilesafari,com.apple.Music
 
       # How often to check for updates
-      - MAVT_CHECK_INTERVAL=1h
+      - MAVT_CHECK_INTERVAL=4h
 
       # Log level: debug, info, warn, error
       - MAVT_LOG_LEVEL=info

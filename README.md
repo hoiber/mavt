@@ -18,20 +18,60 @@ A Go application that tracks Apple App Store app version updates. Run it as a CL
 
 ## Quick Start
 
-### Using Docker (Recommended)
+### Using Pre-built Docker Image (Easiest)
+
+```bash
+# Pull the latest image from GitHub Container Registry
+docker pull ghcr.io/thomas/mavt:latest
+
+# Run with Docker
+docker run -d \
+  --name mavt \
+  -p 7738:8080 \
+  -v ./data:/app/data \
+  -e MAVT_APPS=com.apple.mobilesafari,com.apple.Music \
+  -e MAVT_CHECK_INTERVAL=4h \
+  ghcr.io/thomas/mavt:latest
+
+# Access the web interface
+# Open http://localhost:7738 in your browser
+```
+
+### Using Docker Compose
+
+Create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  mavt:
+    image: ghcr.io/thomas/mavt:latest
+    container_name: mavt
+    restart: unless-stopped
+    environment:
+      - MAVT_APPS=com.apple.mobilesafari,com.apple.Music
+      - MAVT_CHECK_INTERVAL=4h
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "7738:8080"
+```
+
+Then run:
+
+```bash
+docker-compose up -d
+```
+
+### Building from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/thomas/mavt.git
 cd mavt
 
-# Create environment file
-cp .env.example .env
-
-# Edit .env to add apps you want to track
-# MAVT_APPS=com.apple.mobilesafari,com.apple.Music
-
-# Start the tracker
+# Build and run with docker-compose
 docker-compose up -d
 
 # View logs
