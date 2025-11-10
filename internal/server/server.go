@@ -15,6 +15,14 @@ import (
 	"github.com/thomas/mavt/pkg/models"
 )
 
+const (
+	contentTypeHeader     = "Content-Type"
+	contentTypeJSON       = "application/json"
+	contentTypeHTML       = "text/html; charset=utf-8"
+	methodNotAllowedMsg   = "Method not allowed"
+	bundleIDField         = "bundle_id"
+)
+
 // sanitizeForLog removes newlines and control characters to prevent log injection attacks
 func sanitizeForLog(s string) string {
 	// Replace newlines and carriage returns with spaces
@@ -540,7 +548,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 </body>
 </html>`
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set(contentTypeHeader, contentTypeHTML)
 	w.Write([]byte(html))
 }
 
@@ -552,7 +560,7 @@ func (s *Server) handleApps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentTypeHeader, contentTypeJSON)
 	json.NewEncoder(w).Encode(apps)
 }
 
@@ -594,7 +602,7 @@ func (s *Server) handleUpdates(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentTypeHeader, contentTypeJSON)
 	json.NewEncoder(w).Encode(allUpdates)
 }
 
@@ -610,7 +618,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentTypeHeader, contentTypeJSON)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":       "healthy",
 		"version":      version.Version,
@@ -622,7 +630,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 // handleSearch searches for apps in the App Store
 func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, methodNotAllowedMsg, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -646,19 +654,19 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentTypeHeader, contentTypeJSON)
 	json.NewEncoder(w).Encode(apps)
 }
 
 // handleTrack adds an app to tracking
 func (s *Server) handleTrack(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, methodNotAllowedMsg, http.StatusMethodNotAllowed)
 		return
 	}
 
 	var req struct {
-		BundleID string `json:"bundle_id"`
+		BundleID string `json:"` + bundleIDField + `"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
