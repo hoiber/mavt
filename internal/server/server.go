@@ -64,6 +64,7 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/api/health", s.handleHealth)
 	s.mux.HandleFunc("/api/search", s.handleSearch)
 	s.mux.HandleFunc("/api/track", s.handleTrack)
+	s.mux.HandleFunc("/api/history", s.handleHistory)
 }
 
 // Start starts the HTTP server
@@ -87,12 +88,57 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-muted: #999;
+            --border-color: #ddd;
+            --accent-primary: #667eea;
+            --accent-secondary: #764ba2;
+            --success-bg: #e8f5e9;
+            --success-text: #2e7d32;
+            --success-border: #4caf50;
+            --error-bg: #ffebee;
+            --error-text: #c62828;
+            --error-border: #c62828;
+            --update-bg: #e8f5e9;
+            --update-border: #4caf50;
+            --release-notes-bg: #f5f5f5;
+            --search-result-bg: #f9f9f9;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-card: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-muted: #808080;
+            --border-color: #404040;
+            --accent-primary: #667eea;
+            --accent-secondary: #764ba2;
+            --success-bg: #1b3a1f;
+            --success-text: #81c784;
+            --success-border: #4caf50;
+            --error-bg: #3d1f1f;
+            --error-text: #ef5350;
+            --error-border: #c62828;
+            --update-bg: #1b3a1f;
+            --update-border: #4caf50;
+            --release-notes-bg: #242424;
+            --search-result-bg: #353535;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: #f5f5f5;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            transition: background-color 0.3s, color 0.3s;
         }
         .container {
             max-width: 1200px;
@@ -100,40 +146,64 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             padding: 20px;
         }
         header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
             color: white;
             padding: 40px 20px;
             text-align: center;
             border-radius: 10px;
             margin-bottom: 30px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
         }
         h1 { font-size: 2.5em; margin-bottom: 10px; }
         .subtitle { font-size: 1.2em; opacity: 0.9; }
         .section {
-            background: white;
+            background: var(--bg-card);
             padding: 30px;
             margin-bottom: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
         }
         h2 {
-            color: #667eea;
+            color: var(--accent-primary);
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid var(--border-color);
         }
         .app-card {
-            background: #f9f9f9;
+            background: var(--search-result-bg);
             padding: 20px;
             margin: 15px 0;
             border-radius: 8px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--accent-primary);
+            transition: background-color 0.3s;
         }
         .app-name {
             font-size: 1.3em;
             font-weight: bold;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 10px;
         }
         .app-details {
@@ -148,15 +218,15 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         }
         .detail-label {
             font-size: 0.85em;
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 3px;
         }
         .detail-value {
             font-weight: 500;
-            color: #333;
+            color: var(--text-primary);
         }
         .version {
-            background: #667eea;
+            background: var(--accent-primary);
             color: white;
             padding: 4px 12px;
             border-radius: 20px;
@@ -164,37 +234,39 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             font-weight: bold;
         }
         .update-card {
-            background: #e8f5e9;
+            background: var(--update-bg);
             padding: 15px;
             margin: 10px 0;
             border-radius: 8px;
-            border-left: 4px solid #4caf50;
+            border-left: 4px solid var(--update-border);
+            transition: background-color 0.3s;
         }
         .update-header {
             font-weight: bold;
-            color: #2e7d32;
+            color: var(--success-text);
             margin-bottom: 5px;
         }
         .update-time {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9em;
         }
         .loading {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: var(--text-secondary);
         }
         .error {
-            background: #ffebee;
-            color: #c62828;
+            background: var(--error-bg);
+            color: var(--error-text);
             padding: 15px;
             border-radius: 8px;
-            border-left: 4px solid #c62828;
+            border-left: 4px solid var(--error-border);
+            transition: background-color 0.3s;
         }
         .empty-state {
             text-align: center;
             padding: 40px;
-            color: #999;
+            color: var(--text-muted);
         }
         .search-box {
             margin-bottom: 20px;
@@ -203,26 +275,30 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             width: 100%;
             padding: 12px;
             font-size: 16px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--border-color);
             border-radius: 8px;
             box-sizing: border-box;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, border-color 0.3s;
         }
         .search-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--accent-primary);
         }
         .search-results {
             margin-top: 15px;
         }
         .search-result-card {
-            background: #f9f9f9;
+            background: var(--search-result-bg);
             padding: 15px;
             margin: 10px 0;
             border-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--accent-primary);
+            transition: background-color 0.3s;
         }
         .search-result-info {
             flex: 1;
@@ -231,14 +307,15 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             font-weight: bold;
             font-size: 1.1em;
             margin-bottom: 5px;
+            color: var(--text-primary);
         }
         .search-result-details {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9em;
         }
         .btn {
             padding: 8px 20px;
-            background: #667eea;
+            background: var(--accent-primary);
             color: white;
             border: none;
             border-radius: 5px;
@@ -247,54 +324,57 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             transition: background 0.3s;
         }
         .btn:hover {
-            background: #764ba2;
+            background: var(--accent-secondary);
         }
         .btn:disabled {
-            background: #ccc;
+            background: var(--text-muted);
             cursor: not-allowed;
         }
         .btn-success {
-            background: #4caf50;
+            background: var(--success-border);
         }
         .success-message {
-            background: #e8f5e9;
-            color: #2e7d32;
+            background: var(--success-bg);
+            color: var(--success-text);
             padding: 15px;
             border-radius: 8px;
-            border-left: 4px solid #4caf50;
+            border-left: 4px solid var(--success-border);
             margin: 10px 0;
+            transition: background-color 0.3s;
         }
         .release-notes {
-            background: #f5f5f5;
+            background: var(--release-notes-bg);
             padding: 12px;
             margin-top: 12px;
             border-radius: 6px;
             font-size: 0.9em;
-            color: #555;
+            color: var(--text-secondary);
             line-height: 1.5;
             white-space: pre-wrap;
-            border-left: 3px solid #667eea;
+            border-left: 3px solid var(--accent-primary);
+            transition: background-color 0.3s;
         }
         .release-notes-label {
             font-weight: bold;
-            color: #667eea;
+            color: var(--accent-primary);
             margin-bottom: 8px;
             display: block;
         }
         .update-notes {
-            background: #f0f7f0;
+            background: var(--release-notes-bg);
             padding: 10px;
             margin-top: 8px;
             border-radius: 4px;
             font-size: 0.85em;
-            color: #555;
+            color: var(--text-secondary);
             line-height: 1.4;
             white-space: pre-wrap;
             max-height: 150px;
             overflow-y: auto;
+            transition: background-color 0.3s;
         }
         .toggle-notes {
-            color: #667eea;
+            color: var(--accent-primary);
             cursor: pointer;
             font-size: 0.9em;
             margin-top: 5px;
@@ -302,13 +382,153 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             text-decoration: underline;
         }
         .toggle-notes:hover {
-            color: #764ba2;
+            color: var(--accent-secondary);
+        }
+        footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+        footer a:hover {
+            color: var(--accent-secondary);
+        }
+        .app-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .app-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background-color: var(--bg-card);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .modal-header {
+            padding: 20px 30px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        .modal-header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+        .close {
+            color: white;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .close:hover {
+            opacity: 1;
+        }
+        .modal-body {
+            padding: 30px;
+            max-height: calc(80vh - 120px);
+            overflow-y: auto;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .history-table th {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+        }
+        .history-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .history-table tr:hover {
+            background: var(--search-result-bg);
+        }
+        .version-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--accent-primary);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .version-arrow {
+            color: var(--text-muted);
+            margin: 0 8px;
+        }
+        .history-notes {
+            max-width: 400px;
+            white-space: pre-wrap;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .empty-history {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .loading-history {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
             <h1>📱 MAVT</h1>
             <p class="subtitle">Mobile App Version Tracker</p>
         </header>
@@ -332,8 +552,22 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         </div>
     </div>
 
-    <footer style="text-align: center; padding: 20px; color: #999; font-size: 0.9em;">
-        MAVT v` + version.Version + ` &bull; <a href="https://github.com/thomas/mavt" style="color: #667eea; text-decoration: none;">GitHub</a>
+    <!-- Version History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeHistoryModal()">&times;</span>
+                <h2 id="modalAppName">Version History</h2>
+                <p id="modalAppDetails"></p>
+            </div>
+            <div class="modal-body" id="historyTableContainer">
+                <div class="loading-history">Loading version history...</div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9em;">
+        MAVT v` + version.Version + ` &bull; <a href="https://github.com/thomas/mavt">GitHub</a>
     </footer>
 
     <script>
@@ -352,13 +586,13 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                     let releaseNotesHtml = '';
                     if (app.release_notes && app.release_notes.trim()) {
                         const notesId = 'app-notes-' + index;
-                        releaseNotesHtml = '<span class="toggle-notes" onclick="toggleNotes(\'' + notesId + '\', this)">Latest Release Notes (v' + app.version + ') ▼</span>' +
+                        releaseNotesHtml = '<span class="toggle-notes" onclick="event.stopPropagation(); toggleNotes(\'' + notesId + '\', this)">Latest Release Notes (v' + app.version + ') ▼</span>' +
                             '<div class="release-notes" id="' + notesId + '" style="display:none;">' +
                             app.release_notes +
                         '</div>';
                     }
 
-                    return '<div class="app-card">' +
+                    return '<div class="app-card" onclick="showVersionHistory(\'' + app.bundle_id + '\', \'' + app.track_name.replace(/'/g, "\\'") + '\', \'' + app.artist_name.replace(/'/g, "\\'") + '\')">' +
                         '<div class="app-name">' + app.track_name + '</div>' +
                         '<div class="app-details">' +
                             '<div class="detail">' +
@@ -522,6 +756,84 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             }
         }
 
+        // Version History Modal Functions
+        async function showVersionHistory(bundleId, appName, developer) {
+            const modal = document.getElementById('historyModal');
+            const modalAppName = document.getElementById('modalAppName');
+            const modalAppDetails = document.getElementById('modalAppDetails');
+            const historyContainer = document.getElementById('historyTableContainer');
+
+            // Set modal header info
+            modalAppName.textContent = appName;
+            modalAppDetails.textContent = developer + ' • ' + bundleId;
+
+            // Show modal
+            modal.style.display = 'block';
+
+            // Load version history
+            historyContainer.innerHTML = '<div class="loading-history">Loading version history...</div>';
+
+            try {
+                const response = await fetch('/api/history?bundle_id=' + encodeURIComponent(bundleId));
+                if (!response.ok) {
+                    throw new Error('Failed to load version history');
+                }
+
+                const history = await response.json();
+
+                if (!history || history.length === 0) {
+                    historyContainer.innerHTML = '<div class="empty-history">No version history available yet. Updates will appear here when the app version changes.</div>';
+                    return;
+                }
+
+                // Build table
+                let tableHtml = '<table class="history-table">' +
+                    '<thead>' +
+                        '<tr>' +
+                            '<th>Date</th>' +
+                            '<th>Version Change</th>' +
+                            '<th>Release Notes</th>' +
+                        '</tr>' +
+                    '</thead>' +
+                    '<tbody>';
+
+                history.forEach(update => {
+                    const dateStr = new Date(update.updated_at).toLocaleString();
+                    const notesText = update.release_notes && update.release_notes.trim()
+                        ? update.release_notes
+                        : 'No release notes available';
+
+                    tableHtml += '<tr>' +
+                        '<td>' + dateStr + '</td>' +
+                        '<td>' +
+                            '<span class="version-badge">' + update.old_version + '</span>' +
+                            '<span class="version-arrow">→</span>' +
+                            '<span class="version-badge">' + update.new_version + '</span>' +
+                        '</td>' +
+                        '<td><div class="history-notes">' + notesText + '</div></td>' +
+                    '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+                historyContainer.innerHTML = tableHtml;
+
+            } catch (error) {
+                historyContainer.innerHTML = '<div class="error">Failed to load version history: ' + error.message + '</div>';
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('historyModal');
+            if (event.target === modal) {
+                closeHistoryModal();
+            }
+        }
+
         // Load data on page load
         loadApps();
         loadUpdates();
@@ -531,6 +843,41 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             loadApps();
             loadUpdates();
         }, 30000);
+
+        // Dark mode functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+        const THEME_KEY = 'mavt-theme';
+
+        // Check for saved theme preference or default to light mode
+        function getSavedTheme() {
+            return localStorage.getItem(THEME_KEY) || 'light';
+        }
+
+        // Apply theme to the document
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                htmlElement.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+            } else {
+                htmlElement.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+            }
+        }
+
+        // Toggle between light and dark themes
+        function toggleTheme() {
+            const currentTheme = getSavedTheme();
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem(THEME_KEY, newTheme);
+            applyTheme(newTheme);
+        }
+
+        // Apply saved theme on page load
+        applyTheme(getSavedTheme());
+
+        // Add click event listener to toggle button
+        themeToggle.addEventListener('click', toggleTheme);
     </script>
 </body>
 </html>`
@@ -680,4 +1027,27 @@ func (s *Server) handleTrack(w http.ResponseWriter, r *http.Request) {
 		bundleIDField: req.BundleID,
 		"message":     "App successfully added to tracking",
 	})
+}
+
+// handleHistory returns version history for a specific app
+func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, methodNotAllowedMsg, http.StatusMethodNotAllowed)
+		return
+	}
+
+	bundleID := r.URL.Query().Get("bundle_id")
+	if bundleID == "" {
+		http.Error(w, "Query parameter 'bundle_id' is required", http.StatusBadRequest)
+		return
+	}
+
+	history, err := s.tracker.GetVersionHistory(bundleID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get version history: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set(contentTypeHeader, contentTypeJSON)
+	json.NewEncoder(w).Encode(history)
 }
