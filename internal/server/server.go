@@ -339,13 +339,13 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         </div>
 
         <div class="section">
-            <h2>Tracked Apps</h2>
-            <div id="apps" class="loading">Loading apps...</div>
+            <h2>Recent Updates (Last 7 Days)</h2>
+            <div id="updates" class="loading">Loading updates...</div>
         </div>
 
         <div class="section">
-            <h2>Recent Updates (Last 7 Days)</h2>
-            <div id="updates" class="loading">Loading updates...</div>
+            <h2>Tracked Apps</h2>
+            <div id="apps" class="loading">Loading apps...</div>
         </div>
 
         <div class="section">
