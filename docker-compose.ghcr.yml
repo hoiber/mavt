@@ -1,0 +1,81 @@
+services:
+  mavt:
+    # Use pre-built image from GitHub Container Registry
+    image: ghcr.io/hoiber/mavt:1.1.7
+    container_name: mavt
+    restart: unless-stopped
+    user: "1000:1000"
+
+    environment:
+      # Comma-separated list of bundle IDs to track
+      # Examples:
+      #   - com.apple.mobilesafari (Safari)
+      #   - com.apple.Music (Apple Music)
+      #   - com.burbn.instagram (Instagram)
+      #   - net.whatsapp.WhatsApp (WhatsApp)
+      #   - com.zhiliaoapp.musically (TikTok)
+      - MAVT_APPS=com.apple.mobilesafari,com.apple.Music
+
+      # How often to check for updates
+      # Examples: 30m, 1h, 2h, 4h, 12h, 24h
+      - MAVT_CHECK_INTERVAL=4h
+
+      # App Store country/region (ISO 3166-1 alpha-2 code)
+      # Examples: US, GB, AU, CA, DE, FR, JP, etc.
+      - MAVT_COUNTRY=AU
+
+      # Log level: debug, info, warn, error
+      - MAVT_LOG_LEVEL=info
+
+      # Data directory inside container (don't change this)
+      - MAVT_DATA_DIR=/app/data
+
+      # Server configuration
+      - MAVT_SERVER_PORT=8080
+
+      # Apprise notification URL (optional)
+      # Uncomment and configure to enable notifications
+      # Examples:
+      #   - Discord: discord://webhook_id/webhook_token
+      #   - Slack: slack://TokenA/TokenB/TokenC
+      #   - Telegram: tgram://bot_token/chat_id
+      #   - Email: mailto://user:pass@smtp.gmail.com
+      #   - Apprise API: http://apprise:8000/notify
+      # - MAVT_APPRISE_URL=
+
+    volumes:
+      # Persist tracking data using named volume
+      - mavt-data:/app/data
+
+    ports:
+      # Map container port 8080 to host port 7738
+      # Access the web UI at http://localhost:7738
+      - "7738:8080"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "test", "-f", "/app/data/apps/*.json"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# Named volumes
+volumes:
+  mavt-data:
+    # Use external volume (create it first with: docker volume create mavt-data)
+    external: true
+
+# Optional: Apprise notification service
+# Uncomment this section if you want to use Apprise API for notifications
+#   apprise:
+#     image: caronc/apprise:latest
+#     container_name: apprise
+#     restart: unless-stopped
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - apprise-config:/config
+#
+# volumes:
+#   apprise-config:

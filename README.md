@@ -42,8 +42,6 @@ docker run -d \
 Create a `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
-
 services:
   mavt:
     image: ghcr.io/thomas/mavt:latest
@@ -163,6 +161,9 @@ curl -X POST -H "Content-Type: application/json" \
 
 # Get recent updates (last 24 hours)
 curl "http://localhost:8080/api/updates?since=24h"
+
+# Get version history for a specific app
+curl "http://localhost:8080/api/history?bundle_id=com.burbn.instagram"
 
 # Health check
 curl http://localhost:8080/api/health

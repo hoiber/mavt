@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mavt:
     # Option 1: Pull from GitHub Container Registry (requires public package or authentication)
