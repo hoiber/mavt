@@ -37,8 +37,8 @@ services:
       # - MAVT_APPRISE_URL=
 
     volumes:
-      # Persist tracking data
-      - ./data:/app/data
+      # Persist tracking data using named volume
+      - mavt-data:/app/data
 
     ports:
       - "7738:8080"
@@ -51,6 +51,11 @@ services:
       retries: 3
       start_period: 30s
 
+# Named volumes
+volumes:
+  mavt-data:
+    external: true
+
 # Example: Run one-time check instead of daemon
 # Uncomment to use this configuration
 #   mavt-check:
@@ -59,5 +64,5 @@ services:
 #     environment:
 #       - MAVT_APPS=com.apple.mobilesafari
 #     volumes:
-#       - ./data:/app/data
+#       - mavt-data:/app/data
 #     command: ["-check"]

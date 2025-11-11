@@ -43,14 +43,16 @@ type Server struct {
 	tracker       *tracker.Tracker
 	appstoreClient *appstore.Client
 	mux           *http.ServeMux
+	checkInterval time.Duration
 }
 
 // NewServer creates a new HTTP server
-func NewServer(tracker *tracker.Tracker) *Server {
+func NewServer(tracker *tracker.Tracker, checkInterval time.Duration) *Server {
 	s := &Server{
 		tracker:       tracker,
 		appstoreClient: appstore.NewClient(),
 		mux:           http.NewServeMux(),
+		checkInterval: checkInterval,
 	}
 	s.setupRoutes()
 	return s
@@ -87,7 +89,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
     <title>MAVT - App Version Tracker</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%230066ff' fill-rule='evenodd' d='M15 2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1zM0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm8.5 2.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293z'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%%3E%%3Cpath fill='%%230066ff' fill-rule='evenodd' d='M15 2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1zM0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm8.5 2.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293z'/%%3E%%3C/svg%%3E">
     <style>
         :root {
             --bg-primary: #f8f9fa;
@@ -148,32 +150,40 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             padding: 16px;
         }
         header {
-            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            background: linear-gradient(135deg, var(--accent-primary) 0%%, var(--accent-secondary) 100%%);
             color: #ffffff;
-            padding: 12px 16px;
+            padding: 10px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-radius: 8px;
             margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            position: relative;
         }
         .header-left {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        .header-center {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            justify-content: center;
-        }
         .header-right {
             display: flex;
             align-items: center;
+            gap: 8px;
+        }
+        .last-synced-box {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+        }
+        .last-synced-box:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
         .github-link {
             background: rgba(255, 255, 255, 0.15);
@@ -181,7 +191,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             color: #fff;
             width: 32px;
             height: 32px;
-            border-radius: 50%;
+            border-radius: 50%%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -203,7 +213,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             color: #fff;
             width: 32px;
             height: 32px;
-            border-radius: 50%;
+            border-radius: 50%%;
             cursor: pointer;
             font-size: 16px;
             display: flex;
@@ -216,7 +226,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             transform: scale(1.1);
         }
         h1 {
-            font-size: 1.3em;
+            font-size: 1.1em;
             margin: 0;
             font-weight: 600;
         }
@@ -248,23 +258,20 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             border-radius: 6px;
             border-left: 3px solid var(--accent-primary);
             transition: background-color 0.3s;
-            display: flex;
-            align-items: center;
+            display: grid;
+            grid-template-columns: 250px 180px 1fr auto;
             gap: 16px;
-            flex-wrap: wrap;
+            align-items: center;
         }
         .app-name {
             font-size: 1em;
             font-weight: bold;
             color: var(--text-primary);
-            min-width: 200px;
-            flex: 0 0 auto;
         }
         .app-details {
             display: flex;
             align-items: center;
             gap: 16px;
-            flex: 1;
             flex-wrap: wrap;
         }
         .detail {
@@ -291,13 +298,16 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             font-weight: bold;
             font-size: 0.9em;
         }
+        .version.version-update {
+            background: #28a745;
+        }
         .version.critical {
-            background: #dc3545;
+            background: #ff8c00;
             animation: pulse 2s ease-in-out infinite;
         }
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
+            0%%, 100%% { opacity: 1; }
+            50%% { opacity: 0.8; }
         }
         .update-card {
             background: var(--update-bg);
@@ -352,7 +362,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             margin-bottom: 12px;
         }
         .search-input {
-            width: 100%;
+            width: 100%%;
             padding: 10px;
             font-size: 14px;
             border: 2px solid var(--border-color);
@@ -437,7 +447,10 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             white-space: pre-wrap;
             border-left: 2px solid var(--accent-primary);
             transition: background-color 0.3s;
-            flex-basis: 100%;
+            grid-column: 1 / -1;
+        }
+        .notes-toggle-container {
+            text-align: right;
         }
         .release-notes-label {
             font-weight: bold;
@@ -493,8 +506,8 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             z-index: 1000;
             left: 0;
             top: 0;
-            width: 100%;
-            height: 100%;
+            width: 100%%;
+            height: 100%%;
             background-color: rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.3s;
         }
@@ -504,10 +517,10 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
         }
         .modal-content {
             background-color: var(--bg-card);
-            margin: 3% auto;
+            margin: 3%% auto;
             padding: 0;
             border-radius: 8px;
-            width: 92%;
+            width: 92%%;
             max-width: 1000px;
             max-height: 85vh;
             overflow: hidden;
@@ -525,32 +538,69 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             }
         }
         .modal-header {
-            padding: 14px 20px;
-            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            padding: 20px 24px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%%, var(--accent-secondary) 100%%);
             color: #ffffff;
             border-radius: 8px 8px 0 0;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .modal-header h2 {
-            margin: 0;
+            margin: 0 0 8px 0;
+            font-size: 1.4em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-header h2::before {
+            content: '📱';
             font-size: 1.2em;
         }
         .modal-header p {
-            margin: 3px 0 0 0;
-            opacity: 0.9;
-            font-size: 0.8em;
+            margin: 0;
+            opacity: 0.95;
+            font-size: 0.9em;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .modal-subtitle {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .modal-subtitle-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .modal-subtitle-label {
+            opacity: 0.8;
+            font-size: 0.85em;
         }
         .close {
+            position: absolute;
+            top: 20px;
+            right: 24px;
             color: white;
-            float: right;
-            font-size: 24px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
             font-weight: bold;
             cursor: pointer;
-            line-height: 1;
-            opacity: 0.8;
-            transition: opacity 0.2s;
+            transition: all 0.3s;
         }
         .close:hover {
-            opacity: 1;
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
         }
         .modal-body {
             padding: 16px;
@@ -558,7 +608,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             overflow-y: auto;
         }
         .history-table {
-            width: 100%;
+            width: 100%%;
             border-collapse: collapse;
             margin-top: 6px;
             font-size: 0.9em;
@@ -617,23 +667,39 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             color: var(--text-secondary);
             font-size: 0.9em;
         }
+
+        /* Responsive design for smaller screens */
+        @media (max-width: 768px) {
+            .app-card {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .app-name {
+                font-size: 1.1em;
+            }
+            .app-details {
+                gap: 12px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <div class="header-left">
+                <h1>📱 MAVT</h1>
+            </div>
+            <div class="header-right">
+                <div class="last-synced-box" id="lastSynced">
+                    <span>Synced:</span>
+                    <span id="lastSyncedTime">Loading...</span>
+                </div>
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
                 <a href="https://github.com/hoiber/mavt" target="_blank" rel="noopener noreferrer" class="github-link" aria-label="View on GitHub">
                     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
                     </svg>
                 </a>
-            </div>
-            <div class="header-center">
-                <h1>📱 MAVT</h1>
-            </div>
-            <div class="header-right">
-                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
             </div>
         </header>
 
@@ -718,7 +784,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                                 '<span class="detail-value">' + new Date(app.last_checked).toLocaleString() + '</span>' +
                             '</div>' +
                         '</div>' +
-                        releaseNotesToggle +
+                        (releaseNotesToggle ? '<div class="notes-toggle-container">' + releaseNotesToggle + '</div>' : '<div></div>') +
                         releaseNotesContent +
                     '</div>';
                 }).join('');
@@ -740,26 +806,33 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                 }
 
                 container.innerHTML = updates.map((update, index) => {
-                    let notesHtml = '';
+                    let releaseNotesToggle = '';
+                    let releaseNotesContent = '';
                     let isCritical = false;
                     if (update.release_notes && update.release_notes.trim()) {
-                        const notesId = 'notes-' + index;
+                        const notesId = 'update-notes-' + index;
                         // Check if release notes contain CVE
                         isCritical = update.release_notes.toUpperCase().includes('CVE');
-                        notesHtml = '<div class="update-notes" id="' + notesId + '" style="display:none;">' +
+                        releaseNotesToggle = '<span class="toggle-notes" onclick="toggleNotes(\'' + notesId + '\', this)">Release Notes (v' + update.new_version + ') ▼</span>';
+                        releaseNotesContent = '<div class="release-notes" id="' + notesId + '" style="display:none;">' +
                             update.release_notes +
-                        '</div>' +
-                        '<span class="toggle-notes" onclick="toggleNotes(\'' + notesId + '\', this)">Show release notes ▼</span>';
+                        '</div>';
                     }
 
-                    const cardClass = isCritical ? 'update-card critical' : 'update-card';
-                    const headerClass = isCritical ? 'update-header critical' : 'update-header';
-                    return '<div class="' + cardClass + '">' +
-                        '<div class="' + headerClass + '">' +
-                            update.track_name + ': ' + update.old_version + ' → ' + update.new_version +
+                    const versionClass = isCritical ? 'version critical' : 'version version-update';
+                    const versionChange = '<span class="' + versionClass + '">' + update.old_version + ' → ' + update.new_version + '</span>';
+
+                    return '<div class="app-card">' +
+                        '<div class="app-name">' + update.track_name + '</div>' +
+                        versionChange +
+                        '<div class="app-details">' +
+                            '<div class="detail">' +
+                                '<span class="detail-label">Updated:</span>' +
+                                '<span class="detail-value">' + new Date(update.updated_at).toLocaleString() + '</span>' +
+                            '</div>' +
                         '</div>' +
-                        '<div class="update-time">' + new Date(update.updated_at).toLocaleString() + '</div>' +
-                        notesHtml +
+                        (releaseNotesToggle ? '<div class="notes-toggle-container">' + releaseNotesToggle + '</div>' : '<div></div>') +
+                        releaseNotesContent +
                     '</div>';
                 }).join('');
             } catch (error) {
@@ -892,7 +965,16 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 
             // Set modal header info
             modalAppName.textContent = appName;
-            modalAppDetails.textContent = developer + ' • ' + bundleId;
+            modalAppDetails.innerHTML = '<div class="modal-subtitle">' +
+                '<div class="modal-subtitle-item">' +
+                    '<span class="modal-subtitle-label">Developer:</span>' +
+                    '<span>' + developer + '</span>' +
+                '</div>' +
+                '<div class="modal-subtitle-item">' +
+                    '<span class="modal-subtitle-label">Bundle ID:</span>' +
+                    '<span>' + bundleId + '</span>' +
+                '</div>' +
+            '</div>';
 
             // Show modal
             modal.style.display = 'block';
@@ -961,15 +1043,58 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             }
         }
 
-        // Load data on page load
-        loadApps();
-        loadUpdates();
+        // Store the last sync timestamp
+        let lastSyncTime = null;
 
-        // Refresh every 30 seconds
+        // Update last synced timestamp display
+        function updateLastSyncedDisplay() {
+            if (!lastSyncTime) {
+                document.getElementById('lastSyncedTime').textContent = 'Loading...';
+                return;
+            }
+
+            const now = Date.now();
+            const diffMs = now - lastSyncTime;
+            const diffSecs = Math.floor(diffMs / 1000);
+            const diffMins = Math.floor(diffSecs / 60);
+
+            let timeStr;
+            if (diffSecs < 10) {
+                timeStr = 'Just now';
+            } else if (diffSecs < 60) {
+                timeStr = diffSecs + 's ago';
+            } else if (diffMins < 60) {
+                timeStr = diffMins + (diffMins === 1 ? ' min ago' : ' mins ago');
+            } else {
+                const diffHours = Math.floor(diffMins / 60);
+                timeStr = diffHours + (diffHours === 1 ? ' hour ago' : ' hours ago');
+            }
+
+            document.getElementById('lastSyncedTime').textContent = timeStr;
+        }
+
+        // Load all data and update sync time
+        async function refreshData() {
+            await Promise.all([loadApps(), loadUpdates()]);
+            lastSyncTime = Date.now();
+            updateLastSyncedDisplay();
+        }
+
+        // Load data on page load
+        refreshData();
+
+        // Get check interval from server (in milliseconds)
+        const checkIntervalMs = %d;
+
+        // Refresh at the same interval as the backend checks
         setInterval(() => {
-            loadApps();
-            loadUpdates();
-        }, 30000);
+            refreshData();
+        }, checkIntervalMs);
+
+        // Update the relative time display every second
+        setInterval(() => {
+            updateLastSyncedDisplay();
+        }, 1000);
 
         // Dark mode functionality
         const themeToggle = document.getElementById('themeToggle');
@@ -1009,8 +1134,12 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 </body>
 </html>`
 
+	// Inject the check interval into the HTML (convert to milliseconds)
+	checkIntervalMs := int64(s.checkInterval / time.Millisecond)
+	htmlWithConfig := fmt.Sprintf(html, checkIntervalMs)
+
 	w.Header().Set(contentTypeHeader, contentTypeHTML)
-	w.Write([]byte(html))
+	w.Write([]byte(htmlWithConfig))
 }
 
 // handleApps returns all tracked apps
