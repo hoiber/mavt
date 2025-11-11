@@ -5,6 +5,15 @@ All notable changes to MAVT (Mobile App Version Tracker) will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2025-11-10
+
+### Changed
+- **Docker Deployment**: Updated docker-compose.yml to use GitHub Container Registry (GHCR) by default
+  - Image now pulls from `ghcr.io/hoiber/mavt:latest` instead of building locally
+  - Added documentation for both pull and build options
+  - Faster deployment for users who don't need to modify source code
+  - Local build option still available via commented configuration
+
 ## [1.1.4] - 2025-11-10
 
 ### Added
