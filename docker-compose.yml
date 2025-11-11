@@ -2,7 +2,11 @@ version: '3.8'
 
 services:
   mavt:
+    # Option 1: Pull from GitHub Container Registry (requires public package or authentication)
     image: ghcr.io/hoiber/mavt:latest
+    # Option 2: Build locally (uncomment lines below and comment out image line above)
+    # build: .
+    # image: mavt:latest
     container_name: mavt
     restart: unless-stopped
 
