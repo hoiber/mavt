@@ -42,12 +42,13 @@ services:
       - "7738:8080"
 
     # Health check
+    # Checks if the data directory exists and is writable
     healthcheck:
-      test: ["CMD", "test", "-f", "/app/data/apps/*.json"]
-      interval: 5m
+      test: ["CMD", "sh", "-c", "test -d /app/data && test -w /app/data"]
+      interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 10s
 
 # Named volumes
 volumes:

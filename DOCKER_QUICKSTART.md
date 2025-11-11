@@ -192,6 +192,22 @@ curl http://localhost:7738/api/health
 
 ## Troubleshooting
 
+### Container shows as "unhealthy"
+
+This is a common issue on Ubuntu/Linux systems due to volume permissions.
+
+**Quick Fix:**
+```bash
+# Stop container
+docker-compose -f docker-compose.ghcr.yml down
+
+# Fix permissions
+docker run --rm -v mavt-data:/data alpine sh -c "chown -R 1000:1000 /data && chmod -R 755 /data"
+
+# Restart
+docker-compose -f docker-compose.ghcr.yml up -d
+```
+
 ### Container won't start
 ```bash
 # Check logs
@@ -213,12 +229,21 @@ docker run --rm -v mavt-data:/data alpine sh -c "chown -R 1000:1000 /data"
 ### Cannot access web UI
 - Check if port 7738 is already in use
 - Change the port mapping in docker-compose.ghcr.yml: `"8080:8080"` instead of `"7738:8080"`
-- Check firewall settings
+- Check firewall settings (Ubuntu): `sudo ufw allow 7738`
 
 ### App not found errors
 - Verify the bundle ID is correct
 - Try a different `MAVT_COUNTRY` code (apps may not be available in all regions)
 - Use the web UI search to find the correct bundle ID
+
+### For More Help
+
+See the comprehensive [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for:
+- Detailed debugging steps
+- Ubuntu/Linux-specific issues
+- SELinux/AppArmor problems
+- Performance tuning
+- And more...
 
 ## Advanced Configuration
 
