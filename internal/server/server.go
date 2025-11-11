@@ -796,17 +796,24 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                     return;
                 }
 
-                searchResults.innerHTML = apps.map(app =>
-                    '<div class="search-result-card">' +
+                searchResults.innerHTML = apps.map(app => {
+                    let buttonHtml;
+                    if (app.is_tracked) {
+                        buttonHtml = '<button class="btn btn-success" disabled>✓ Tracked</button>';
+                    } else {
+                        buttonHtml = '<button class="btn" onclick="trackApp(\'' + app.bundle_id + '\', this)">Track</button>';
+                    }
+
+                    return '<div class="search-result-card">' +
                         '<div class="search-result-info">' +
                             '<div class="search-result-name">' + app.track_name + '</div>' +
                             '<div class="search-result-details">' +
                                 app.artist_name + ' • v' + app.version + ' • ' + app.bundle_id +
                             '</div>' +
                         '</div>' +
-                        '<button class="btn" onclick="trackApp(\'' + app.bundle_id + '\', this)">Track</button>' +
-                    '</div>'
-                ).join('');
+                        buttonHtml +
+                    '</div>';
+                }).join('');
             } catch (error) {
                 searchResults.innerHTML = '<div class="error">Search failed: ' + error.message + '</div>';
             }
@@ -831,13 +838,21 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                     throw new Error(error);
                 }
 
-                button.textContent = '✓ Added';
+                button.textContent = '✓ Tracked';
                 button.className = 'btn btn-success';
 
                 // Refresh tracked apps list
                 setTimeout(() => {
                     loadApps();
                 }, 1000);
+
+                // Re-run search to update the search results with tracking status
+                const currentQuery = searchInput.value.trim();
+                if (currentQuery.length >= 2) {
+                    setTimeout(() => {
+                        searchApps(currentQuery);
+                    }, 1000);
+                }
             } catch (error) {
                 alert('Failed to add app: ' + error.message);
                 button.disabled = false;
@@ -1100,8 +1115,35 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get list of tracked apps to check which ones are already being tracked
+	trackedApps, err := s.tracker.GetTrackedApps()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get tracked apps: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a map of tracked bundle IDs for quick lookup
+	trackedMap := make(map[string]bool)
+	for _, app := range trackedApps {
+		trackedMap[app.BundleID] = true
+	}
+
+	// Add tracking status to search results
+	type SearchResult struct {
+		*models.AppInfo
+		IsTracked bool `json:"is_tracked"`
+	}
+
+	results := make([]SearchResult, len(apps))
+	for i, app := range apps {
+		results[i] = SearchResult{
+			AppInfo:   app,
+			IsTracked: trackedMap[app.BundleID],
+		}
+	}
+
 	w.Header().Set(contentTypeHeader, contentTypeJSON)
-	json.NewEncoder(w).Encode(apps)
+	json.NewEncoder(w).Encode(results)
 }
 
 // handleTrack adds an app to tracking
