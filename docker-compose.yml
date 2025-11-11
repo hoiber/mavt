@@ -2,8 +2,7 @@ version: '3.8'
 
 services:
   mavt:
-    build: .
-    image: mavt:latest
+    image: ghcr.io/hoiber/mavt:latest
     container_name: mavt
     restart: unless-stopped
 
@@ -50,8 +49,7 @@ services:
 # Example: Run one-time check instead of daemon
 # Uncomment to use this configuration
 #   mavt-check:
-#     build: .
-#     image: mavt:latest
+#     image: ghcr.io/hoiber/mavt:latest
 #     container_name: mavt-check
 #     environment:
 #       - MAVT_APPS=com.apple.mobilesafari
