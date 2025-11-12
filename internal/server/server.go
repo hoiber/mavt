@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1312,6 +1313,11 @@ func (s *Server) handleUpdates(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	// Sort updates by timestamp in descending order (most recent first)
+	sort.Slice(allUpdates, func(i, j int) bool {
+		return allUpdates[i].UpdatedAt.After(allUpdates[j].UpdatedAt)
+	})
 
 	w.Header().Set(contentTypeHeader, contentTypeJSON)
 	json.NewEncoder(w).Encode(allUpdates)
