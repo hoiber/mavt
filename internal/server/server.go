@@ -67,6 +67,7 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/api/search", s.handleSearch)
 	s.mux.HandleFunc("/api/track", s.handleTrack)
 	s.mux.HandleFunc("/api/history", s.handleHistory)
+	s.mux.HandleFunc("/api/last-update", s.handleLastUpdate)
 }
 
 // Start starts the HTTP server
@@ -1144,6 +1145,9 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             document.getElementById('lastSyncedTime').textContent = timeStr;
         }
 
+        // Store the last known update timestamp
+        let lastKnownUpdate = null;
+
         // Load all data and update sync time
         async function refreshData() {
             await Promise.all([loadApps(), loadUpdates()]);
@@ -1151,11 +1155,57 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             updateLastSyncedDisplay();
         }
 
+        // Check for new updates and refresh if found
+        async function checkForNewUpdates() {
+            try {
+                const response = await fetch('/api/last-update');
+                const data = await response.json();
+
+                if (data.has_updates) {
+                    const currentUpdate = new Date(data.last_update).getTime();
+
+                    // If we have a previous timestamp and it's different, refresh
+                    if (lastKnownUpdate !== null && currentUpdate > lastKnownUpdate) {
+                        console.log('New update detected, refreshing data...');
+                        await refreshData();
+                    }
+
+                    // Update the last known timestamp
+                    lastKnownUpdate = currentUpdate;
+                }
+            } catch (error) {
+                console.error('Failed to check for updates:', error);
+            }
+        }
+
+        // Initialize last known update on page load
+        async function initializeUpdateTracking() {
+            try {
+                const response = await fetch('/api/last-update');
+                const data = await response.json();
+                if (data.has_updates) {
+                    lastKnownUpdate = new Date(data.last_update).getTime();
+                }
+            } catch (error) {
+                console.error('Failed to initialize update tracking:', error);
+            }
+        }
+
         // Load data on page load
-        refreshData();
+        async function initialize() {
+            await refreshData();
+            await initializeUpdateTracking();
+        }
+
+        initialize();
 
         // Get check interval from server (in milliseconds)
         const checkIntervalMs = %d;
+
+        // Poll for new updates every 30 seconds
+        setInterval(() => {
+            checkForNewUpdates();
+        }, 30000);
 
         // Refresh at the same interval as the backend checks
         setInterval(() => {
@@ -1423,4 +1473,42 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set(contentTypeHeader, contentTypeJSON)
 	json.NewEncoder(w).Encode(history)
+}
+
+// handleLastUpdate returns the timestamp of the most recent update
+func (s *Server) handleLastUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, methodNotAllowedMsg, http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get all apps to check their updates
+	apps, err := s.tracker.GetTrackedApps()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get apps: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var latestUpdate time.Time
+
+	// Find the most recent update across all apps
+	for _, app := range apps {
+		history, err := s.tracker.GetVersionHistory(app.BundleID)
+		if err != nil {
+			continue
+		}
+
+		for _, update := range history {
+			if update.UpdatedAt.After(latestUpdate) {
+				latestUpdate = update.UpdatedAt
+			}
+		}
+	}
+
+	w.Header().Set(contentTypeHeader, contentTypeJSON)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"last_update":   latestUpdate,
+		"tracked_apps":  len(apps),
+		"has_updates":   !latestUpdate.IsZero(),
+	})
 }
