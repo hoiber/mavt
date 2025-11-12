@@ -545,6 +545,21 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             position: relative;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+        }
+        .modal-actions {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
         .modal-header h2 {
             margin: 0 0 8px 0;
             font-size: 1.4em;
@@ -732,6 +747,9 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             </div>
             <div class="modal-body" id="historyTableContainer">
                 <div class="loading-history">Loading version history...</div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-danger" id="removeAppBtn" onclick="removeAppFromHistory()">Remove App</button>
             </div>
         </div>
     </div>
@@ -956,12 +974,18 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             }
         }
 
+        // Store current bundle ID for removal
+        let currentBundleId = null;
+
         // Version History Modal Functions
         async function showVersionHistory(bundleId, appName, developer) {
             const modal = document.getElementById('historyModal');
             const modalAppName = document.getElementById('modalAppName');
             const modalAppDetails = document.getElementById('modalAppDetails');
             const historyContainer = document.getElementById('historyTableContainer');
+
+            // Store bundle ID for removal
+            currentBundleId = bundleId;
 
             // Set modal header info
             modalAppName.textContent = appName;
@@ -1033,6 +1057,53 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 
         function closeHistoryModal() {
             document.getElementById('historyModal').style.display = 'none';
+            currentBundleId = null;
+        }
+
+        async function removeAppFromHistory() {
+            if (!currentBundleId) {
+                alert('No app selected for removal');
+                return;
+            }
+
+            const confirmed = confirm('Are you sure you want to remove this app from tracking? This will delete all version history.');
+            if (!confirmed) {
+                return;
+            }
+
+            const removeBtn = document.getElementById('removeAppBtn');
+            const originalText = removeBtn.textContent;
+            removeBtn.disabled = true;
+            removeBtn.textContent = 'Removing...';
+
+            try {
+                const response = await fetch('/api/track', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ bundle_id: currentBundleId })
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+
+                // Close modal
+                closeHistoryModal();
+
+                // Refresh the apps list
+                await loadApps();
+
+                // Show success message (could be improved with a toast notification)
+                alert('App successfully removed from tracking');
+
+            } catch (error) {
+                alert('Failed to remove app: ' + error.message);
+                removeBtn.disabled = false;
+                removeBtn.textContent = originalText;
+            }
         }
 
         // Close modal when clicking outside of it
@@ -1275,9 +1346,9 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(results)
 }
 
-// handleTrack adds an app to tracking
+// handleTrack adds or removes an app from tracking
 func (s *Server) handleTrack(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
 		http.Error(w, methodNotAllowedMsg, http.StatusMethodNotAllowed)
 		return
 	}
@@ -1296,6 +1367,25 @@ func (s *Server) handleTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle DELETE request
+	if r.Method == http.MethodDelete {
+		if err := s.tracker.RemoveApp(req.BundleID); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to remove app: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("Removed app from tracking via API: %s", sanitizeForLog(req.BundleID))
+
+		w.Header().Set(contentTypeHeader, contentTypeJSON)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":     true,
+			bundleIDField: req.BundleID,
+			"message":     "App successfully removed from tracking",
+		})
+		return
+	}
+
+	// Handle POST request (add app)
 	if err := s.tracker.TrackApp(req.BundleID); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to track app: %v", err), http.StatusInternalServerError)
 		return

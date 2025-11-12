@@ -202,3 +202,23 @@ func (s *Storage) GetRecentUpdates(since time.Duration) ([]models.VersionUpdate,
 
 	return recentUpdates, nil
 }
+
+// DeleteApp removes an app and all its version history from storage
+func (s *Storage) DeleteApp(bundleID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Delete the app file
+	appFile := filepath.Join(s.dataDir, "apps", fmt.Sprintf("%s.json", bundleID))
+	if err := os.Remove(appFile); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete app file: %w", err)
+	}
+
+	// Delete the updates file
+	updatesFile := filepath.Join(s.dataDir, "updates", fmt.Sprintf("%s.json", bundleID))
+	if err := os.Remove(updatesFile); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete updates file: %w", err)
+	}
+
+	return nil
+}

@@ -164,3 +164,9 @@ func (t *Tracker) GetTrackedApps() ([]*models.AppInfo, error) {
 func (t *Tracker) GetVersionHistory(bundleID string) ([]models.VersionUpdate, error) {
 	return t.storage.GetVersionUpdates(bundleID)
 }
+
+// RemoveApp removes an app from tracking and deletes all its history
+func (t *Tracker) RemoveApp(bundleID string) error {
+	log.Printf("Removing app from tracking: %s", sanitizeForLog(bundleID))
+	return t.storage.DeleteApp(bundleID)
+}
