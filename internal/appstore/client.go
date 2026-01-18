@@ -177,7 +177,11 @@ func (c *Client) convertToAppInfo(app iTunesApp) (*models.AppInfo, error) {
 	}
 
 	var fileSize int64
-	fmt.Sscanf(app.FileSizeBytes, "%d", &fileSize)
+	if _, err := fmt.Sscanf(app.FileSizeBytes, "%d", &fileSize); err != nil {
+		// If parsing fails, fileSize remains 0 which is acceptable
+		// Log at debug level if needed, but don't fail the operation
+		fileSize = 0
+	}
 
 	return &models.AppInfo{
 		BundleID:        app.BundleID,
