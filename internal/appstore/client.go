@@ -14,6 +14,12 @@ import (
 const (
 	lookupURL = "https://itunes.apple.com/lookup"
 	searchURL = "https://itunes.apple.com/search"
+
+	// HTTP client timeout for App Store API requests
+	apiRequestTimeout = 30 * time.Second
+
+	// Default country code for App Store queries
+	defaultCountry = "us"
 )
 
 // Client handles communication with the App Store API
@@ -26,20 +32,20 @@ type Client struct {
 func NewClient() *Client {
 	return &Client{
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: apiRequestTimeout,
 		},
-		country: "us",
+		country: defaultCountry,
 	}
 }
 
 // NewClientWithCountry creates a new App Store API client with a specific country
 func NewClientWithCountry(country string) *Client {
 	if country == "" {
-		country = "us"
+		country = defaultCountry
 	}
 	return &Client{
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: apiRequestTimeout,
 		},
 		country: country,
 	}

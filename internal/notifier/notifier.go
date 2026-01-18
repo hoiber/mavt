@@ -12,6 +12,15 @@ import (
 	"github.com/thomas/mavt/pkg/models"
 )
 
+const (
+	// HTTP client timeout for notification requests
+	notificationTimeout = 10 * time.Second
+	// Maximum length for release notes in notifications
+	maxReleaseNotesLength = 500
+	// Maximum number of updates to show in batch notifications before truncating
+	maxUpdatesInBatch = 10
+)
+
 // Notifier handles sending notifications for app updates
 type Notifier struct {
 	appriseURL string
@@ -27,7 +36,7 @@ func NewNotifier(appriseURL string) *Notifier {
 		appriseURL: appriseURL,
 		enabled:    enabled,
 		client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: notificationTimeout,
 		},
 	}
 }
@@ -49,8 +58,8 @@ func (n *Notifier) NotifyUpdate(update *models.VersionUpdate) error {
 	if update.ReleaseNotes != "" {
 		// Truncate long release notes for notification
 		notes := update.ReleaseNotes
-		if len(notes) > 500 {
-			notes = notes[:500] + "..."
+		if len(notes) > maxReleaseNotesLength {
+			notes = notes[:maxReleaseNotesLength] + "..."
 		}
 		body += "\n\n" + notes
 	}
@@ -78,9 +87,9 @@ func (n *Notifier) NotifyUpdates(updates []models.VersionUpdate) error {
 		body.WriteString(fmt.Sprintf("• %s: %s → %s",
 			update.TrackName, update.OldVersion, update.NewVersion))
 
-		// Limit to first 10 updates in notification
-		if i >= 9 && len(updates) > 10 {
-			body.WriteString(fmt.Sprintf("\n... and %d more", len(updates)-10))
+		// Limit to first N updates in notification
+		if i >= maxUpdatesInBatch-1 && len(updates) > maxUpdatesInBatch {
+			body.WriteString(fmt.Sprintf("\n... and %d more", len(updates)-maxUpdatesInBatch))
 			break
 		}
 	}
