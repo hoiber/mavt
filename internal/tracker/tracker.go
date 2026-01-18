@@ -3,30 +3,15 @@ package tracker
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/thomas/mavt/internal/appstore"
 	"github.com/thomas/mavt/internal/config"
 	"github.com/thomas/mavt/internal/notifier"
 	"github.com/thomas/mavt/internal/storage"
+	"github.com/thomas/mavt/internal/util"
 	"github.com/thomas/mavt/pkg/models"
 )
-
-// sanitizeForLog removes newlines and control characters to prevent log injection attacks
-func sanitizeForLog(s string) string {
-	// Replace newlines and carriage returns with spaces
-	s = strings.ReplaceAll(s, "\n", " ")
-	s = strings.ReplaceAll(s, "\r", " ")
-	// Remove other control characters (ASCII 0-31 except space)
-	var result strings.Builder
-	for _, r := range s {
-		if r >= 32 || r == '\t' {
-			result.WriteRune(r)
-		}
-	}
-	return result.String()
-}
 
 // Tracker monitors app versions and detects updates
 type Tracker struct {
@@ -60,7 +45,7 @@ func (t *Tracker) TrackApp(bundleID string) error {
 	if existing == nil {
 		// First time tracking this app
 		log.Printf("Now tracking %s (%s) - version %s",
-			sanitizeForLog(app.TrackName), sanitizeForLog(app.BundleID), sanitizeForLog(app.Version))
+			util.SanitizeForLog(app.TrackName), util.SanitizeForLog(app.BundleID), util.SanitizeForLog(app.Version))
 	} else {
 		// Update first discovered time
 		app.FirstDiscovered = existing.FirstDiscovered
@@ -85,7 +70,7 @@ func (t *Tracker) CheckForUpdates() ([]models.VersionUpdate, error) {
 	for _, app := range apps {
 		update, err := t.checkSingleApp(app)
 		if err != nil {
-			log.Printf("Error checking %s: %v", sanitizeForLog(app.BundleID), err)
+			log.Printf("Error checking %s: %v", util.SanitizeForLog(app.BundleID), err)
 			continue
 		}
 
@@ -129,9 +114,9 @@ func (t *Tracker) checkSingleApp(existingApp *models.AppInfo) (*models.VersionUp
 		}
 
 		log.Printf("Version update detected for %s: %s -> %s",
-			sanitizeForLog(currentApp.TrackName),
-			sanitizeForLog(existingApp.Version),
-			sanitizeForLog(currentApp.Version))
+			util.SanitizeForLog(currentApp.TrackName),
+			util.SanitizeForLog(existingApp.Version),
+			util.SanitizeForLog(currentApp.Version))
 
 		// Save the update
 		if err := t.storage.SaveVersionUpdate(update); err != nil {
@@ -167,6 +152,6 @@ func (t *Tracker) GetVersionHistory(bundleID string) ([]models.VersionUpdate, er
 
 // RemoveApp removes an app from tracking and deletes all its history
 func (t *Tracker) RemoveApp(bundleID string) error {
-	log.Printf("Removing app from tracking: %s", sanitizeForLog(bundleID))
+	log.Printf("Removing app from tracking: %s", util.SanitizeForLog(bundleID))
 	return t.storage.DeleteApp(bundleID)
 }

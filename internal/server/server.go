@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/thomas/mavt/internal/appstore"
 	"github.com/thomas/mavt/internal/tracker"
+	"github.com/thomas/mavt/internal/util"
 	"github.com/thomas/mavt/internal/version"
 	"github.com/thomas/mavt/pkg/models"
 )
@@ -24,21 +24,6 @@ const (
 	methodNotAllowedMsg   = "Method not allowed"
 	bundleIDField         = "bundle_id"
 )
-
-// sanitizeForLog removes newlines and control characters to prevent log injection attacks
-func sanitizeForLog(s string) string {
-	// Replace newlines and carriage returns with spaces
-	s = strings.ReplaceAll(s, "\n", " ")
-	s = strings.ReplaceAll(s, "\r", " ")
-	// Remove other control characters (ASCII 0-31 except space)
-	var result strings.Builder
-	for _, r := range s {
-		if r >= 32 || r == '\t' {
-			result.WriteRune(r)
-		}
-	}
-	return result.String()
-}
 
 // Server handles HTTP requests
 type Server struct {
@@ -1445,7 +1430,7 @@ func (s *Server) handleTrack(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("Removed app from tracking via API: %s", sanitizeForLog(req.BundleID))
+		log.Printf("Removed app from tracking via API: %s", util.SanitizeForLog(req.BundleID))
 
 		w.Header().Set(contentTypeHeader, contentTypeJSON)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -1462,7 +1447,7 @@ func (s *Server) handleTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Added app to tracking via API: %s", sanitizeForLog(req.BundleID))
+	log.Printf("Added app to tracking via API: %s", util.SanitizeForLog(req.BundleID))
 
 	w.Header().Set(contentTypeHeader, contentTypeJSON)
 	w.WriteHeader(http.StatusCreated)
