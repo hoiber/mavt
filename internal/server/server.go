@@ -761,6 +761,13 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
     </footer>
 
     <script>
+        // Escape HTML to prevent XSS attacks
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         async function loadApps() {
             try {
                 const response = await fetch('/api/apps');
@@ -780,24 +787,24 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                         const notesId = 'app-notes-' + index;
                         // Check if release notes contain CVE
                         isCritical = app.release_notes.toUpperCase().includes('CVE');
-                        releaseNotesToggle = '<span class="toggle-notes" onclick="event.stopPropagation(); toggleNotes(\'' + notesId + '\', this)">Latest Release Notes (v' + app.version + ') ▼</span>';
+                        releaseNotesToggle = '<span class="toggle-notes" onclick="event.stopPropagation(); toggleNotes(\'' + notesId + '\', this)">Latest Release Notes (v' + escapeHtml(app.version) + ') ▼</span>';
                         releaseNotesContent = '<div class="release-notes" id="' + notesId + '" style="display:none;">' +
-                            app.release_notes +
+                            escapeHtml(app.release_notes) +
                         '</div>';
                     }
 
                     const versionClass = isCritical ? 'version critical' : 'version';
-                    return '<div class="app-card" onclick="showVersionHistory(\'' + app.bundle_id + '\', \'' + app.track_name.replace(/'/g, "\\'") + '\', \'' + app.artist_name.replace(/'/g, "\\'") + '\')">' +
-                        '<div class="app-name">' + app.track_name + '</div>' +
-                        '<span class="' + versionClass + '">' + app.version + '</span>' +
+                    return '<div class="app-card" onclick="showVersionHistory(\'' + escapeHtml(app.bundle_id) + '\', \'' + escapeHtml(app.track_name.replace(/'/g, "\\'")) + '\', \'' + escapeHtml(app.artist_name.replace(/'/g, "\\'")) + '\')">' +
+                        '<div class="app-name">' + escapeHtml(app.track_name) + '</div>' +
+                        '<span class="' + versionClass + '">' + escapeHtml(app.version) + '</span>' +
                         '<div class="app-details">' +
                             '<div class="detail">' +
                                 '<span class="detail-label">Bundle:</span>' +
-                                '<span class="detail-value">' + app.bundle_id + '</span>' +
+                                '<span class="detail-value">' + escapeHtml(app.bundle_id) + '</span>' +
                             '</div>' +
                             '<div class="detail">' +
                                 '<span class="detail-label">Dev:</span>' +
-                                '<span class="detail-value">' + app.artist_name + '</span>' +
+                                '<span class="detail-value">' + escapeHtml(app.artist_name) + '</span>' +
                             '</div>' +
                             '<div class="detail">' +
                                 '<span class="detail-label">Checked:</span>' +
@@ -833,17 +840,17 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                         const notesId = 'update-notes-' + index;
                         // Check if release notes contain CVE
                         isCritical = update.release_notes.toUpperCase().includes('CVE');
-                        releaseNotesToggle = '<span class="toggle-notes" onclick="toggleNotes(\'' + notesId + '\', this)">Release Notes (v' + update.new_version + ') ▼</span>';
+                        releaseNotesToggle = '<span class="toggle-notes" onclick="toggleNotes(\'' + notesId + '\', this)">Release Notes (v' + escapeHtml(update.new_version) + ') ▼</span>';
                         releaseNotesContent = '<div class="release-notes" id="' + notesId + '" style="display:none;">' +
-                            update.release_notes +
+                            escapeHtml(update.release_notes) +
                         '</div>';
                     }
 
                     const versionClass = isCritical ? 'version critical' : 'version version-update';
-                    const versionChange = '<span class="' + versionClass + '">' + update.old_version + ' → ' + update.new_version + '</span>';
+                    const versionChange = '<span class="' + versionClass + '">' + escapeHtml(update.old_version) + ' → ' + escapeHtml(update.new_version) + '</span>';
 
                     return '<div class="app-card">' +
-                        '<div class="app-name">' + update.track_name + '</div>' +
+                        '<div class="app-name">' + escapeHtml(update.track_name) + '</div>' +
                         versionChange +
                         '<div class="app-details">' +
                             '<div class="detail">' +
@@ -894,14 +901,14 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                     if (app.is_tracked) {
                         buttonHtml = '<button class="btn btn-success" disabled>✓ Tracked</button>';
                     } else {
-                        buttonHtml = '<button class="btn" onclick="trackApp(\'' + app.bundle_id + '\', this)">Track</button>';
+                        buttonHtml = '<button class="btn" onclick="trackApp(\'' + escapeHtml(app.bundle_id) + '\', this)">Track</button>';
                     }
 
                     return '<div class="search-result-card">' +
                         '<div class="search-result-info">' +
-                            '<div class="search-result-name">' + app.track_name + '</div>' +
+                            '<div class="search-result-name">' + escapeHtml(app.track_name) + '</div>' +
                             '<div class="search-result-details">' +
-                                app.artist_name + ' • v' + app.version + ' • ' + app.bundle_id +
+                                escapeHtml(app.artist_name) + ' • v' + escapeHtml(app.version) + ' • ' + escapeHtml(app.bundle_id) +
                             '</div>' +
                         '</div>' +
                         buttonHtml +
@@ -994,11 +1001,11 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
             modalAppDetails.innerHTML = '<div class="modal-subtitle">' +
                 '<div class="modal-subtitle-item">' +
                     '<span class="modal-subtitle-label">Developer:</span>' +
-                    '<span>' + developer + '</span>' +
+                    '<span>' + escapeHtml(developer) + '</span>' +
                 '</div>' +
                 '<div class="modal-subtitle-item">' +
                     '<span class="modal-subtitle-label">Bundle ID:</span>' +
-                    '<span>' + bundleId + '</span>' +
+                    '<span>' + escapeHtml(bundleId) + '</span>' +
                 '</div>' +
             '</div>';
 
@@ -1041,11 +1048,11 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
                     tableHtml += '<tr>' +
                         '<td>' + dateStr + '</td>' +
                         '<td>' +
-                            '<span class="version-badge">' + update.old_version + '</span>' +
+                            '<span class="version-badge">' + escapeHtml(update.old_version) + '</span>' +
                             '<span class="version-arrow">→</span>' +
-                            '<span class="version-badge">' + update.new_version + '</span>' +
+                            '<span class="version-badge">' + escapeHtml(update.new_version) + '</span>' +
                         '</td>' +
-                        '<td><div class="history-notes">' + notesText + '</div></td>' +
+                        '<td><div class="history-notes">' + escapeHtml(notesText) + '</div></td>' +
                     '</tr>';
                 });
 
