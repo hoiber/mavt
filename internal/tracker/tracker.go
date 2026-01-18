@@ -31,6 +31,11 @@ func NewTracker(cfg *config.Config, storage *storage.Storage, notifier *notifier
 
 // TrackApp adds an app to tracking by bundle ID
 func (t *Tracker) TrackApp(bundleID string) error {
+	// Validate bundle ID format first
+	if err := util.ValidateBundleID(bundleID); err != nil {
+		return fmt.Errorf("invalid bundle ID: %w", err)
+	}
+
 	app, err := t.client.LookupByBundleID(bundleID)
 	if err != nil {
 		return fmt.Errorf("failed to lookup app: %w", err)
@@ -152,6 +157,11 @@ func (t *Tracker) GetVersionHistory(bundleID string) ([]models.VersionUpdate, er
 
 // RemoveApp removes an app from tracking and deletes all its history
 func (t *Tracker) RemoveApp(bundleID string) error {
+	// Validate bundle ID format first
+	if err := util.ValidateBundleID(bundleID); err != nil {
+		return fmt.Errorf("invalid bundle ID: %w", err)
+	}
+
 	log.Printf("Removing app from tracking: %s", util.SanitizeForLog(bundleID))
 	return t.storage.DeleteApp(bundleID)
 }
