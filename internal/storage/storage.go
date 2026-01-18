@@ -85,7 +85,12 @@ func (s *Storage) SaveVersionUpdate(update *models.VersionUpdate) error {
 	// Load existing updates
 	var updates []models.VersionUpdate
 	if data, err := os.ReadFile(updatesFile); err == nil {
-		json.Unmarshal(data, &updates)
+		if err := json.Unmarshal(data, &updates); err != nil {
+			// Log the error but continue - we'll overwrite with valid data
+			// This prevents corrupted files from blocking new updates
+			fmt.Fprintf(os.Stderr, "Warning: failed to unmarshal existing updates for %s: %v\n", update.BundleID, err)
+			updates = []models.VersionUpdate{}
+		}
 	}
 
 	// Append new update
