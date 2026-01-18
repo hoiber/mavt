@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -196,17 +197,12 @@ func handleDaemon(tr *tracker.Tracker, cfg *config.Config) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	go func() {
-		<-sigChan
-		log.Println("Shutdown signal received, stopping...")
-		cancel()
-	}()
-
 	// Start HTTP server in a goroutine
 	srv := server.NewServer(tr, cfg.CheckInterval)
+	serverErrors := make(chan error, 1)
 	go func() {
-		if err := srv.Start(cfg.ServerHost, cfg.ServerPort); err != nil {
-			log.Printf("HTTP server error: %v", err)
+		if err := srv.Start(cfg.ServerHost, cfg.ServerPort); err != nil && err != http.ErrServerClosed {
+			serverErrors <- err
 		}
 	}()
 
@@ -219,9 +215,29 @@ func handleDaemon(tr *tracker.Tracker, cfg *config.Config) {
 
 	for {
 		select {
+		case <-sigChan:
+			log.Println("Shutdown signal received, stopping...")
+
+			// Create shutdown context with 10 second timeout
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer shutdownCancel()
+
+			// Gracefully shutdown HTTP server
+			if err := srv.Shutdown(shutdownCtx); err != nil {
+				log.Printf("HTTP server shutdown error: %v", err)
+			}
+
+			log.Println("Daemon stopped")
+			return
+
+		case err := <-serverErrors:
+			log.Printf("HTTP server error: %v", err)
+			return
+
 		case <-ctx.Done():
 			log.Println("Daemon stopped")
 			return
+
 		case <-ticker.C:
 			handleCheckNow(tr)
 		}

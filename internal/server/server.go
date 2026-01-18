@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -45,6 +46,7 @@ type Server struct {
 	appstoreClient *appstore.Client
 	mux           *http.ServeMux
 	checkInterval time.Duration
+	httpServer    *http.Server
 }
 
 // NewServer creates a new HTTP server
@@ -74,8 +76,21 @@ func (s *Server) setupRoutes() {
 // Start starts the HTTP server
 func (s *Server) Start(host string, port int) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
+	s.httpServer = &http.Server{
+		Addr:    addr,
+		Handler: s.mux,
+	}
 	log.Printf("Starting HTTP server on http://%s", addr)
-	return http.ListenAndServe(addr, s.mux)
+	return s.httpServer.ListenAndServe()
+}
+
+// Shutdown gracefully shuts down the HTTP server
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.httpServer == nil {
+		return nil
+	}
+	log.Println("Shutting down HTTP server...")
+	return s.httpServer.Shutdown(ctx)
 }
 
 // handleIndex serves the main page
