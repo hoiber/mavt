@@ -44,9 +44,6 @@ ENV MAVT_DATA_DIR=/app/data
 ENV MAVT_CHECK_INTERVAL=1h
 ENV MAVT_LOG_LEVEL=info
 
-# Volume for persistent data
-VOLUME ["/app/data"]
-
 # Default command: run in daemon mode
 ENTRYPOINT ["./mavt"]
 CMD ["-daemon"]
