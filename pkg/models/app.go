@@ -15,6 +15,7 @@ type AppInfo struct {
 	FileSizeBytes   int64     `json:"file_size_bytes"`
 	Price           float64   `json:"price"`
 	Currency        string    `json:"currency"`
+	ArtworkURL      string    `json:"artwork_url"`
 	LastChecked     time.Time `json:"last_checked"`
 	FirstDiscovered time.Time `json:"first_discovered"`
 }

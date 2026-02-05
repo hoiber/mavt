@@ -53,17 +53,18 @@ type iTunesResponse struct {
 
 // iTunesApp represents an app in the iTunes API response
 type iTunesApp struct {
-	TrackID              int64     `json:"trackId"`
-	BundleID             string    `json:"bundleId"`
-	TrackName            string    `json:"trackName"`
-	Version              string    `json:"version"`
-	CurrentVersionReleaseDate string `json:"currentVersionReleaseDate"`
-	ReleaseNotes         string    `json:"releaseNotes"`
-	ArtistName           string    `json:"artistName"`
-	MinimumOsVersion     string    `json:"minimumOsVersion"`
-	FileSizeBytes        string    `json:"fileSizeBytes"`
-	Price                float64   `json:"price"`
-	Currency             string    `json:"currency"`
+	TrackID                   int64   `json:"trackId"`
+	BundleID                  string  `json:"bundleId"`
+	TrackName                 string  `json:"trackName"`
+	Version                   string  `json:"version"`
+	CurrentVersionReleaseDate string  `json:"currentVersionReleaseDate"`
+	ReleaseNotes              string  `json:"releaseNotes"`
+	ArtistName                string  `json:"artistName"`
+	MinimumOsVersion          string  `json:"minimumOsVersion"`
+	FileSizeBytes             string  `json:"fileSizeBytes"`
+	Price                     float64 `json:"price"`
+	Currency                  string  `json:"currency"`
+	ArtworkUrl100             string  `json:"artworkUrl100"`
 }
 
 // LookupByBundleID fetches app information by bundle ID
@@ -191,6 +192,7 @@ func (c *Client) convertToAppInfo(app iTunesApp) (*models.AppInfo, error) {
 		FileSizeBytes:   fileSize,
 		Price:           app.Price,
 		Currency:        app.Currency,
+		ArtworkURL:      app.ArtworkUrl100,
 		LastChecked:     time.Now(),
 		FirstDiscovered: time.Now(),
 	}, nil
