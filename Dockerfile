@@ -32,8 +32,12 @@ RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /app
 
-# Copy binary from builder
+# Copy binary and entrypoint script from builder
 COPY --from=builder /build/mavt .
+COPY docker-entrypoint.sh /usr/local/bin/
+
+# Make entrypoint executable
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Create data directory
 RUN mkdir -p /app/data
@@ -50,6 +54,6 @@ ENV MAVT_DATA_DIR=/app/data
 ENV MAVT_CHECK_INTERVAL=1h
 ENV MAVT_LOG_LEVEL=info
 
-# Default command: run in daemon mode
-ENTRYPOINT ["./mavt"]
-CMD ["-daemon"]
+# Use entrypoint script to handle directory initialization
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["./mavt", "-daemon"]
