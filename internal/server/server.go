@@ -54,16 +54,18 @@ type Server struct {
 	mux           *http.ServeMux
 	checkInterval time.Duration
 	dataDir       string
+	environment   string
 }
 
 // NewServer creates a new HTTP server
-func NewServer(tracker *tracker.Tracker, checkInterval time.Duration, dataDir string) *Server {
+func NewServer(tracker *tracker.Tracker, checkInterval time.Duration, dataDir, environment string) *Server {
 	s := &Server{
 		tracker:       tracker,
 		appstoreClient: appstore.NewClient(),
 		mux:           http.NewServeMux(),
 		checkInterval: checkInterval,
 		dataDir:       dataDir,
+		environment:   environment,
 	}
 	s.setupRoutes()
 	return s
@@ -87,6 +89,7 @@ func (s *Server) setupRoutes() {
 func (s *Server) Start(host string, port int) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
 	log.Printf("Starting HTTP server on http://%s", addr)
+	log.Printf("Environment: %s, Version: %s, Commit: %s", s.environment, version.Version, version.GitCommit)
 	return http.ListenAndServe(addr, s.mux)
 }
 
@@ -110,6 +113,20 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	checkIntervalMs := int64(s.checkInterval / time.Millisecond)
 	html = strings.Replace(html, "{{VERSION}}", version.Version, -1)
 	html = strings.Replace(html, "{{CHECK_INTERVAL_MS}}", fmt.Sprintf("%d", checkIntervalMs), -1)
+
+	// Add commit badge only for staging environment
+	commitBadge := ""
+	if s.environment == "staging" && version.GitCommit != "unknown" {
+		gitCommit := version.GitCommit
+		if len(gitCommit) > 7 {
+			gitCommit = gitCommit[:7]
+		}
+		commitBadge = fmt.Sprintf(" <span class=\"font-mono text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded\">%s</span>", gitCommit)
+		log.Printf("Staging mode: showing commit badge with hash %s", gitCommit)
+	} else {
+		log.Printf("Commit badge hidden: environment=%s, gitCommit=%s", s.environment, version.GitCommit)
+	}
+	html = strings.Replace(html, "{{COMMIT_BADGE}}", commitBadge, -1)
 
 	w.Header().Set(contentTypeHeader, contentTypeHTML)
 	w.Write([]byte(html))
@@ -432,8 +449,9 @@ func (s *Server) handleImport(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Validate file extension
-	if filepath.Ext(header.Filename) != ".zip" {
+	// Validate file extension (case-insensitive)
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if ext != ".zip" {
 		http.Error(w, "Only ZIP files are supported", http.StatusBadRequest)
 		return
 	}

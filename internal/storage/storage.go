@@ -19,8 +19,20 @@ type Storage struct {
 
 // NewStorage creates a new storage instance
 func NewStorage(dataDir string) (*Storage, error) {
+	// Create data directory structure
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
+	}
+
+	// Ensure apps and updates subdirectories exist
+	appsDir := filepath.Join(dataDir, "apps")
+	if err := os.MkdirAll(appsDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create apps directory: %w", err)
+	}
+
+	updatesDir := filepath.Join(dataDir, "updates")
+	if err := os.MkdirAll(updatesDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create updates directory: %w", err)
 	}
 
 	return &Storage{

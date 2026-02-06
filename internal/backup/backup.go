@@ -207,11 +207,28 @@ func Import(zipPath, dataDir string) (*Metadata, error) {
 			return nil, fmt.Errorf("invalid subdirectory: %s (expected 'apps' or 'updates')", subDir)
 		}
 
-		// Validate filename (should be *.json)
-		fileName := parts[len(parts)-1]
-		if !strings.HasSuffix(fileName, ".json") {
-			return nil, fmt.Errorf("invalid file extension: %s (expected .json)", fileName)
+		// Handle directory entries first (before filename validation)
+		// Directory paths may have empty last part (e.g., "data/apps/" splits to ["data", "apps", ""])
+		if file.FileInfo().IsDir() {
+			// For directories, construct path from the full file.Name
+			targetPath := filepath.Join(absDataDir, strings.TrimPrefix(filepath.ToSlash(file.Name), "data/"))
+			absTargetPath, err := filepath.Abs(targetPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve target path: %w", err)
+			}
+
+			// Security check: ensure target path is within data directory
+			if !strings.HasPrefix(absTargetPath, absDataDir) {
+				return nil, fmt.Errorf("path traversal attempt detected: %s", file.Name)
+			}
+
+			if err := os.MkdirAll(absTargetPath, 0755); err != nil {
+				return nil, fmt.Errorf("failed to create directory %s: %w", absTargetPath, err)
+			}
+			continue
 		}
+
+		fileName := parts[len(parts)-1]
 
 		// Sanitize and validate filename to prevent directory traversal
 		cleanFileName := filepath.Base(fileName)
@@ -231,12 +248,9 @@ func Import(zipPath, dataDir string) (*Metadata, error) {
 			return nil, fmt.Errorf("path traversal attempt detected: %s", file.Name)
 		}
 
-		// Handle directory entries
-		if file.FileInfo().IsDir() {
-			if err := os.MkdirAll(absTargetPath, 0755); err != nil {
-				return nil, fmt.Errorf("failed to create directory %s: %w", absTargetPath, err)
-			}
-			continue
+		// Validate filename extension (only for files, not directories)
+		if !strings.HasSuffix(fileName, ".json") {
+			return nil, fmt.Errorf("invalid file extension: %s (expected .json)", fileName)
 		}
 
 		// Ensure parent directory exists

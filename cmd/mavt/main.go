@@ -210,7 +210,7 @@ func handleDaemon(tr *tracker.Tracker, cfg *config.Config) {
 	}()
 
 	// Start HTTP server in a goroutine
-	srv := server.NewServer(tr, cfg.CheckInterval, cfg.DataDir)
+	srv := server.NewServer(tr, cfg.CheckInterval, cfg.DataDir, cfg.Environment)
 	go func() {
 		if err := srv.Start(cfg.ServerHost, cfg.ServerPort); err != nil {
 			log.Printf("HTTP server error: %v", err)
