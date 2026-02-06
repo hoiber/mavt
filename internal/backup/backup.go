@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/thomas/mavt/internal/version"
@@ -111,7 +112,7 @@ func Export(dataDir, outputPath string) error {
 	return nil
 }
 
-// Import extracts a ZIP backup to the data directory
+// Import extracts a ZIP backup to the data directory with security validation
 func Import(zipPath, dataDir string) (*Metadata, error) {
 	// Open ZIP file
 	reader, err := zip.OpenReader(zipPath)
@@ -121,11 +122,29 @@ func Import(zipPath, dataDir string) (*Metadata, error) {
 	defer reader.Close()
 
 	var metadata Metadata
+	const (
+		maxFileSize       = 50 * 1024 * 1024 // 50MB per file
+		maxTotalSize      = 500 * 1024 * 1024 // 500MB total extraction size
+		maxFiles          = 10000              // Maximum number of files
+	)
 
-	// Extract all files
+	var totalExtractedSize int64
+	fileCount := 0
+
+	// Get absolute path for data directory to prevent traversal
+	absDataDir, err := filepath.Abs(dataDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute data directory path: %w", err)
+	}
+
+	// First pass: Read and validate metadata
+	metadataFound := false
 	for _, file := range reader.File {
-		// Read metadata file first
 		if file.Name == "metadata.json" {
+			if file.UncompressedSize64 > 1024*1024 { // 1MB limit for metadata
+				return nil, fmt.Errorf("metadata file too large")
+			}
+
 			metadataReader, err := file.Open()
 			if err != nil {
 				return nil, fmt.Errorf("failed to open metadata file: %w", err)
@@ -135,7 +154,35 @@ func Import(zipPath, dataDir string) (*Metadata, error) {
 			if err := json.NewDecoder(metadataReader).Decode(&metadata); err != nil {
 				return nil, fmt.Errorf("failed to decode metadata: %w", err)
 			}
+			metadataFound = true
+			break
+		}
+	}
+
+	if !metadataFound {
+		return nil, fmt.Errorf("backup metadata not found - this may not be a valid MAVT backup")
+	}
+
+	// Second pass: Validate and extract files
+	for _, file := range reader.File {
+		fileCount++
+		if fileCount > maxFiles {
+			return nil, fmt.Errorf("backup contains too many files (max %d)", maxFiles)
+		}
+
+		// Skip metadata (already processed)
+		if file.Name == "metadata.json" {
 			continue
+		}
+
+		// Validate file size to prevent zip bombs
+		if file.UncompressedSize64 > maxFileSize {
+			return nil, fmt.Errorf("file %s exceeds maximum size of %d bytes", file.Name, maxFileSize)
+		}
+
+		totalExtractedSize += int64(file.UncompressedSize64)
+		if totalExtractedSize > maxTotalSize {
+			return nil, fmt.Errorf("total extracted size exceeds maximum of %d bytes", maxTotalSize)
 		}
 
 		// Skip non-data files
@@ -143,42 +190,89 @@ func Import(zipPath, dataDir string) (*Metadata, error) {
 			continue
 		}
 
-		// Remove "data/" prefix to get target path
-		targetPath := filepath.Join(dataDir, filepath.Base(filepath.Dir(file.Name)), filepath.Base(file.Name))
+		// Validate path structure: should be data/apps/*.json or data/updates/*.json
+		parts := filepath.SplitList(filepath.ToSlash(file.Name))
+		if len(parts) < 3 || parts[0] != "data" {
+			// On Windows, SplitList uses ; as separator, use custom split
+			pathParts := strings.Split(filepath.ToSlash(file.Name), "/")
+			if len(pathParts) < 3 || pathParts[0] != "data" {
+				return nil, fmt.Errorf("invalid file path structure: %s", file.Name)
+			}
+			parts = pathParts
+		}
+
+		// Validate subdirectory is "apps" or "updates"
+		subDir := parts[1]
+		if subDir != "apps" && subDir != "updates" {
+			return nil, fmt.Errorf("invalid subdirectory: %s (expected 'apps' or 'updates')", subDir)
+		}
+
+		// Validate filename (should be *.json)
+		fileName := parts[len(parts)-1]
+		if !strings.HasSuffix(fileName, ".json") {
+			return nil, fmt.Errorf("invalid file extension: %s (expected .json)", fileName)
+		}
+
+		// Sanitize and validate filename to prevent directory traversal
+		cleanFileName := filepath.Base(fileName)
+		if cleanFileName != fileName || strings.Contains(fileName, "..") {
+			return nil, fmt.Errorf("suspicious filename detected: %s", file.Name)
+		}
+
+		// Construct target path and ensure it's within data directory
+		targetPath := filepath.Join(absDataDir, subDir, cleanFileName)
+		absTargetPath, err := filepath.Abs(targetPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve target path: %w", err)
+		}
+
+		// Security check: ensure target path is within data directory
+		if !strings.HasPrefix(absTargetPath, absDataDir) {
+			return nil, fmt.Errorf("path traversal attempt detected: %s", file.Name)
+		}
 
 		// Handle directory entries
 		if file.FileInfo().IsDir() {
-			if err := os.MkdirAll(targetPath, 0755); err != nil {
-				return nil, fmt.Errorf("failed to create directory %s: %w", targetPath, err)
+			if err := os.MkdirAll(absTargetPath, 0755); err != nil {
+				return nil, fmt.Errorf("failed to create directory %s: %w", absTargetPath, err)
 			}
 			continue
 		}
 
 		// Ensure parent directory exists
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-			return nil, fmt.Errorf("failed to create parent directory for %s: %w", targetPath, err)
+		if err := os.MkdirAll(filepath.Dir(absTargetPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create parent directory for %s: %w", absTargetPath, err)
 		}
 
-		// Extract file
-		outFile, err := os.Create(targetPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create file %s: %w", targetPath, err)
-		}
-
+		// Extract and validate file content
 		fileReader, err := file.Open()
 		if err != nil {
-			outFile.Close()
 			return nil, fmt.Errorf("failed to open file in ZIP: %w", err)
 		}
 
-		if _, err := io.Copy(outFile, fileReader); err != nil {
-			outFile.Close()
-			fileReader.Close()
-			return nil, fmt.Errorf("failed to extract file %s: %w", targetPath, err)
+		// Read content with size limit
+		limitedReader := io.LimitReader(fileReader, maxFileSize+1)
+		content, err := io.ReadAll(limitedReader)
+		fileReader.Close()
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file %s: %w", file.Name, err)
 		}
 
-		outFile.Close()
-		fileReader.Close()
+		if int64(len(content)) > maxFileSize {
+			return nil, fmt.Errorf("file %s exceeds size limit after decompression", file.Name)
+		}
+
+		// Validate JSON format
+		var jsonCheck interface{}
+		if err := json.Unmarshal(content, &jsonCheck); err != nil {
+			return nil, fmt.Errorf("invalid JSON in file %s: %w", file.Name, err)
+		}
+
+		// Write validated content to file
+		if err := os.WriteFile(absTargetPath, content, 0644); err != nil {
+			return nil, fmt.Errorf("failed to write file %s: %w", absTargetPath, err)
+		}
 	}
 
 	return &metadata, nil

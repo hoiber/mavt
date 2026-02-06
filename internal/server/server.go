@@ -454,15 +454,25 @@ func (s *Server) handleImport(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpFile.Close()
 
-	// Import backup
+	// Get file size for logging
+	fileInfo, _ := os.Stat(tmpFile.Name())
+	uploadSize := int64(0)
+	if fileInfo != nil {
+		uploadSize = fileInfo.Size()
+	}
+
+	log.Printf("Starting import from %s (%.2f MB)", sanitizeForLog(header.Filename), float64(uploadSize)/1024/1024)
+
+	// Import backup with security validation
 	metadata, err := backup.Import(tmpFile.Name(), s.dataDir)
 	if err != nil {
+		log.Printf("Import failed from %s: %v", sanitizeForLog(header.Filename), err)
 		http.Error(w, fmt.Sprintf("Failed to import backup: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Import completed: %s (version: %s, apps: %d)",
-		sanitizeForLog(header.Filename), metadata.Version, metadata.AppCount)
+	log.Printf("Import completed successfully: %s (backup version: %s, created: %s, apps: %d)",
+		sanitizeForLog(header.Filename), metadata.Version, metadata.CreatedAt.Format(time.RFC3339), metadata.AppCount)
 
 	w.Header().Set(contentTypeHeader, contentTypeJSON)
 	json.NewEncoder(w).Encode(map[string]interface{}{

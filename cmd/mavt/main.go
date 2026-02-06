@@ -255,6 +255,18 @@ func handleExportBackup(dataDir, outputPath string) {
 func handleImportBackup(dataDir, inputPath string) {
 	log.Printf("Importing data from %s to %s...", inputPath, dataDir)
 
+	// Create automatic backup of existing data before import
+	preImportBackupPath := fmt.Sprintf("pre-import-backup-%s.zip", time.Now().Format("2006-01-02-150405"))
+	log.Printf("Creating pre-import backup: %s", preImportBackupPath)
+
+	if err := backup.Export(dataDir, preImportBackupPath); err != nil {
+		log.Printf("Warning: Failed to create pre-import backup: %v", err)
+		log.Printf("Continue anyway? This will overwrite existing data. (Press Ctrl+C to cancel, or wait 5 seconds to continue)")
+		time.Sleep(5 * time.Second)
+	} else {
+		log.Printf("Pre-import backup created successfully: %s", preImportBackupPath)
+	}
+
 	metadata, err := backup.Import(inputPath, dataDir)
 	if err != nil {
 		log.Fatalf("Failed to import backup: %v", err)
@@ -264,4 +276,5 @@ func handleImportBackup(dataDir, inputPath string) {
 	log.Printf("  - Backup version: %s", metadata.Version)
 	log.Printf("  - Created at: %s", metadata.CreatedAt.Format(time.RFC1123))
 	log.Printf("  - Apps imported: %d", metadata.AppCount)
+	log.Printf("  - Pre-import backup saved at: %s", preImportBackupPath)
 }
