@@ -207,11 +207,7 @@ func Import(zipPath, dataDir string) (*Metadata, error) {
 			return nil, fmt.Errorf("invalid subdirectory: %s (expected 'apps' or 'updates')", subDir)
 		}
 
-		// Validate filename (should be *.json)
 		fileName := parts[len(parts)-1]
-		if !strings.HasSuffix(fileName, ".json") {
-			return nil, fmt.Errorf("invalid file extension: %s (expected .json)", fileName)
-		}
 
 		// Sanitize and validate filename to prevent directory traversal
 		cleanFileName := filepath.Base(fileName)
@@ -231,12 +227,17 @@ func Import(zipPath, dataDir string) (*Metadata, error) {
 			return nil, fmt.Errorf("path traversal attempt detected: %s", file.Name)
 		}
 
-		// Handle directory entries
+		// Handle directory entries (skip extension validation for directories)
 		if file.FileInfo().IsDir() {
 			if err := os.MkdirAll(absTargetPath, 0755); err != nil {
 				return nil, fmt.Errorf("failed to create directory %s: %w", absTargetPath, err)
 			}
 			continue
+		}
+
+		// Validate filename extension (only for files, not directories)
+		if !strings.HasSuffix(fileName, ".json") {
+			return nil, fmt.Errorf("invalid file extension: %s (expected .json)", fileName)
 		}
 
 		// Ensure parent directory exists
