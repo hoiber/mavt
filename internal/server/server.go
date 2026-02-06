@@ -4,14 +4,18 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/thomas/mavt/internal/appstore"
+	"github.com/thomas/mavt/internal/backup"
 	"github.com/thomas/mavt/internal/tracker"
 	"github.com/thomas/mavt/internal/version"
 	"github.com/thomas/mavt/pkg/models"
@@ -49,15 +53,17 @@ type Server struct {
 	appstoreClient *appstore.Client
 	mux           *http.ServeMux
 	checkInterval time.Duration
+	dataDir       string
 }
 
 // NewServer creates a new HTTP server
-func NewServer(tracker *tracker.Tracker, checkInterval time.Duration) *Server {
+func NewServer(tracker *tracker.Tracker, checkInterval time.Duration, dataDir string) *Server {
 	s := &Server{
 		tracker:       tracker,
 		appstoreClient: appstore.NewClient(),
 		mux:           http.NewServeMux(),
 		checkInterval: checkInterval,
+		dataDir:       dataDir,
 	}
 	s.setupRoutes()
 	return s
@@ -73,6 +79,8 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/api/track", s.handleTrack)
 	s.mux.HandleFunc("/api/history", s.handleHistory)
 	s.mux.HandleFunc("/api/last-update", s.handleLastUpdate)
+	s.mux.HandleFunc("/api/export", s.handleExport)
+	s.mux.HandleFunc("/api/import", s.handleImport)
 }
 
 // Start starts the HTTP server
@@ -359,5 +367,109 @@ func (s *Server) handleLastUpdate(w http.ResponseWriter, r *http.Request) {
 		"last_update":   latestUpdate,
 		"tracked_apps":  len(apps),
 		"has_updates":   !latestUpdate.IsZero(),
+	})
+}
+
+// handleExport creates and downloads a backup ZIP file
+func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, methodNotAllowedMsg, http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Create temporary file for the backup
+	tmpFile, err := os.CreateTemp("", "mavt-backup-*.zip")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create temporary file: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.Close()
+
+	// Create backup
+	if err := backup.Export(s.dataDir, tmpFile.Name()); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create backup: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Read the backup file
+	backupData, err := os.ReadFile(tmpFile.Name())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to read backup file: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate filename with timestamp
+	filename := fmt.Sprintf("mavt-backup-%s.zip", time.Now().Format("2006-01-02-150405"))
+
+	// Send file as download
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(backupData)))
+	w.Write(backupData)
+
+	log.Printf("Export backup created: %s (%.2f MB)", filename, float64(len(backupData))/1024/1024)
+}
+
+// handleImport restores data from an uploaded backup ZIP file
+func (s *Server) handleImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, methodNotAllowedMsg, http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse multipart form (max 100MB)
+	if err := r.ParseMultipartForm(100 << 20); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Get uploaded file
+	file, header, err := r.FormFile("backup")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get uploaded file: %v", err), http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Validate file extension
+	if filepath.Ext(header.Filename) != ".zip" {
+		http.Error(w, "Only ZIP files are supported", http.StatusBadRequest)
+		return
+	}
+
+	// Create temporary file
+	tmpFile, err := os.CreateTemp("", "mavt-import-*.zip")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create temporary file: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	// Copy uploaded file to temporary file
+	if _, err := io.Copy(tmpFile, file); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to save uploaded file: %v", err), http.StatusInternalServerError)
+		return
+	}
+	tmpFile.Close()
+
+	// Import backup
+	metadata, err := backup.Import(tmpFile.Name(), s.dataDir)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to import backup: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Import completed: %s (version: %s, apps: %d)",
+		sanitizeForLog(header.Filename), metadata.Version, metadata.AppCount)
+
+	w.Header().Set(contentTypeHeader, contentTypeJSON)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":    true,
+		"message":    "Backup successfully imported",
+		"version":    metadata.Version,
+		"created_at": metadata.CreatedAt,
+		"app_count":  metadata.AppCount,
 	})
 }

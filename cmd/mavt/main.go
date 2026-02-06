@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/thomas/mavt/internal/backup"
 	"github.com/thomas/mavt/internal/config"
 	"github.com/thomas/mavt/internal/notifier"
 	"github.com/thomas/mavt/internal/server"
@@ -26,6 +27,8 @@ var (
 	showUpdates    = flag.String("updates", "", "Show version history for a bundle ID")
 	recentDuration = flag.String("recent", "", "Show recent updates (e.g., '24h', '7d')")
 	showVersion    = flag.Bool("version", false, "Show version information")
+	exportBackup   = flag.String("export", "", "Export data to a ZIP backup file (e.g., 'backup.zip')")
+	importBackup   = flag.String("import", "", "Import data from a ZIP backup file (e.g., 'backup.zip')")
 )
 
 func main() {
@@ -66,6 +69,10 @@ func main() {
 
 	// Handle commands
 	switch {
+	case *exportBackup != "":
+		handleExportBackup(cfg.DataDir, *exportBackup)
+	case *importBackup != "":
+		handleImportBackup(cfg.DataDir, *importBackup)
 	case *addApp != "":
 		handleAddApp(tr, *addApp)
 	case *listApps:
@@ -203,7 +210,7 @@ func handleDaemon(tr *tracker.Tracker, cfg *config.Config) {
 	}()
 
 	// Start HTTP server in a goroutine
-	srv := server.NewServer(tr, cfg.CheckInterval)
+	srv := server.NewServer(tr, cfg.CheckInterval, cfg.DataDir)
 	go func() {
 		if err := srv.Start(cfg.ServerHost, cfg.ServerPort); err != nil {
 			log.Printf("HTTP server error: %v", err)
@@ -226,4 +233,35 @@ func handleDaemon(tr *tracker.Tracker, cfg *config.Config) {
 			handleCheckNow(tr)
 		}
 	}
+}
+
+func handleExportBackup(dataDir, outputPath string) {
+	log.Printf("Exporting data from %s to %s...", dataDir, outputPath)
+
+	if err := backup.Export(dataDir, outputPath); err != nil {
+		log.Fatalf("Failed to export backup: %v", err)
+	}
+
+	// Get file size
+	fileInfo, err := os.Stat(outputPath)
+	if err != nil {
+		log.Printf("Export completed: %s", outputPath)
+		return
+	}
+
+	log.Printf("Export completed successfully: %s (%.2f MB)", outputPath, float64(fileInfo.Size())/1024/1024)
+}
+
+func handleImportBackup(dataDir, inputPath string) {
+	log.Printf("Importing data from %s to %s...", inputPath, dataDir)
+
+	metadata, err := backup.Import(inputPath, dataDir)
+	if err != nil {
+		log.Fatalf("Failed to import backup: %v", err)
+	}
+
+	log.Printf("Import completed successfully:")
+	log.Printf("  - Backup version: %s", metadata.Version)
+	log.Printf("  - Created at: %s", metadata.CreatedAt.Format(time.RFC1123))
+	log.Printf("  - Apps imported: %d", metadata.AppCount)
 }
