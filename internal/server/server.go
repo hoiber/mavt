@@ -89,6 +89,7 @@ func (s *Server) setupRoutes() {
 func (s *Server) Start(host string, port int) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
 	log.Printf("Starting HTTP server on http://%s", addr)
+	log.Printf("Environment: %s, Version: %s, Commit: %s", s.environment, version.Version, version.GitCommit)
 	return http.ListenAndServe(addr, s.mux)
 }
 
@@ -121,6 +122,9 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 			gitCommit = gitCommit[:7]
 		}
 		commitBadge = fmt.Sprintf(" <span class=\"font-mono text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded\">%s</span>", gitCommit)
+		log.Printf("Staging mode: showing commit badge with hash %s", gitCommit)
+	} else {
+		log.Printf("Commit badge hidden: environment=%s, gitCommit=%s", s.environment, version.GitCommit)
 	}
 	html = strings.Replace(html, "{{COMMIT_BADGE}}", commitBadge, -1)
 
