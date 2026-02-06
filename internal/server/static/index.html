@@ -706,7 +706,9 @@
                     try {
                         const response = await fetch(`/api/history?bundle_id=${encodeURIComponent(app.bundle_id)}`);
                         if (!response.ok) throw new Error('Failed to load history');
-                        this.historyModal.history = await response.json() || [];
+                        const history = await response.json() || [];
+                        // Reverse to show most recent updates first
+                        this.historyModal.history = history.reverse();
                     } catch (error) {
                         this.showToast('Failed to load version history: ' + error.message, 'error');
                     } finally {
