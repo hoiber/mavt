@@ -335,3 +335,108 @@ See [.env.example](.env.example) for complete list. Key variables:
 - `MAVT_SERVER_HOST` - HTTP server bind address (default: `0.0.0.0`)
 - `MAVT_SERVER_PORT` - HTTP server port (default: `8080`)
 - `MAVT_APPRISE_URL` - Apprise notification URL (optional, enables notifications if set)
+- `MAVT_ENVIRONMENT` - Environment name (default: `production`, options: `staging`, `production`)
+
+## Deployment & Monitoring
+
+### Railway Deployments
+
+MAVT is deployed to Railway with separate staging and production environments:
+
+- **Staging**: https://mavt-staging.up.railway.app/
+- **Production**: https://mavt-production.up.railway.app/
+
+Both environments build from source on Railway (not using GHCR images).
+
+**Environment-Specific Features:**
+- Staging displays a commit badge in the footer (e.g., `v1.1.9 abc1234`) when `MAVT_ENVIRONMENT=staging` is set
+- Production does not show the commit badge for cleaner UI
+- Commit badge requires `BuildDate` and `GitCommit` to be set via Docker build args (only available when using GHCR images)
+
+### GitHub Actions Docker Builds
+
+The [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml) workflow automatically builds and publishes Docker images to GHCR:
+
+**Triggers:**
+- Push to `main` branch → builds `latest` tag
+- Push to `staging` branch → builds `staging` tag
+- Push tags matching `v*.*.*` → builds semver tags (e.g., `1.1.9`, `1.1`, `1`)
+
+**Build Arguments:**
+- `GIT_COMMIT` - Injected from `${{ github.sha }}`
+- `BUILD_DATE` - Injected from `${{ github.event.head_commit.timestamp }}`
+
+**Platforms:**
+- `linux/amd64`
+- `linux/arm64`
+
+**Images Published to:** `ghcr.io/hoiber/mavt`
+
+### Health Monitoring with Gatus
+
+MAVT provides health check endpoints suitable for monitoring with [Gatus](https://github.com/TwiN/gatus) or similar tools.
+
+**Recommended Gatus Configuration:**
+
+```yaml
+endpoints:
+  # Staging Environment
+  - name: MAVT Staging - Health
+    url: "https://mavt-staging.up.railway.app/api/health"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == healthy"
+      - "[RESPONSE_TIME] < 3000"
+    alerts:
+      - type: discord  # or slack, telegram, etc.
+        description: "MAVT Staging health check failed"
+
+  - name: MAVT Staging - Web UI
+    url: "https://mavt-staging.up.railway.app/"
+    interval: 120s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY] == pat(*MAVT*)"
+      - "[RESPONSE_TIME] < 3000"
+
+  # Production Environment
+  - name: MAVT Production - Health
+    url: "https://mavt-production.up.railway.app/api/health"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == healthy"
+      - "[RESPONSE_TIME] < 3000"
+    alerts:
+      - type: discord
+        description: "MAVT Production health check failed"
+
+  - name: MAVT Production - Web UI
+    url: "https://mavt-production.up.railway.app/"
+    interval: 120s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY] == pat(*MAVT*)"
+      - "[RESPONSE_TIME] < 3000"
+
+  - name: MAVT Production - Apps API
+    url: "https://mavt-production.up.railway.app/api/apps"
+    interval: 300s
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 3000"
+
+  - name: MAVT Production - Updates API
+    url: "https://mavt-production.up.railway.app/api/updates?since=24h"
+    interval: 300s
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 3000"
+```
+
+**Monitored Endpoints:**
+- `/api/health` - Health check with JSON response validation
+- `/` - Web UI availability and content verification
+- `/api/apps` - Apps API availability
+- `/api/updates?since=24h` - Updates API availability
