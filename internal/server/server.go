@@ -432,8 +432,9 @@ func (s *Server) handleImport(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Validate file extension
-	if filepath.Ext(header.Filename) != ".zip" {
+	// Validate file extension (case-insensitive)
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if ext != ".zip" {
 		http.Error(w, "Only ZIP files are supported", http.StatusBadRequest)
 		return
 	}
