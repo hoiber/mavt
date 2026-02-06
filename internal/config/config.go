@@ -31,6 +31,9 @@ type Config struct {
 
 	// App Store country/region (ISO 3166-1 alpha-2 code)
 	Country string
+
+	// Environment (staging, production)
+	Environment string
 }
 
 // Load loads configuration from environment variables
@@ -43,6 +46,7 @@ func Load() (*Config, error) {
 		ServerHost:    getEnv("MAVT_SERVER_HOST", "0.0.0.0"),
 		AppriseURL:    getEnv("MAVT_APPRISE_URL", ""),
 		Country:       getEnv("MAVT_COUNTRY", "AU"),
+		Environment:   getEnv("MAVT_ENVIRONMENT", "production"),
 	}
 
 	// Parse apps list from environment

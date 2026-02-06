@@ -54,16 +54,18 @@ type Server struct {
 	mux           *http.ServeMux
 	checkInterval time.Duration
 	dataDir       string
+	environment   string
 }
 
 // NewServer creates a new HTTP server
-func NewServer(tracker *tracker.Tracker, checkInterval time.Duration, dataDir string) *Server {
+func NewServer(tracker *tracker.Tracker, checkInterval time.Duration, dataDir, environment string) *Server {
 	s := &Server{
 		tracker:       tracker,
 		appstoreClient: appstore.NewClient(),
 		mux:           http.NewServeMux(),
 		checkInterval: checkInterval,
 		dataDir:       dataDir,
+		environment:   environment,
 	}
 	s.setupRoutes()
 	return s
@@ -110,6 +112,17 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	checkIntervalMs := int64(s.checkInterval / time.Millisecond)
 	html = strings.Replace(html, "{{VERSION}}", version.Version, -1)
 	html = strings.Replace(html, "{{CHECK_INTERVAL_MS}}", fmt.Sprintf("%d", checkIntervalMs), -1)
+
+	// Add commit badge only for staging environment
+	commitBadge := ""
+	if s.environment == "staging" && version.GitCommit != "unknown" {
+		gitCommit := version.GitCommit
+		if len(gitCommit) > 7 {
+			gitCommit = gitCommit[:7]
+		}
+		commitBadge = fmt.Sprintf(" <span class=\"font-mono text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded\">%s</span>", gitCommit)
+	}
+	html = strings.Replace(html, "{{COMMIT_BADGE}}", commitBadge, -1)
 
 	w.Header().Set(contentTypeHeader, contentTypeHTML)
 	w.Write([]byte(html))
