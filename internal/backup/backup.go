@@ -123,9 +123,9 @@ func Import(zipPath, dataDir string) (*Metadata, error) {
 
 	var metadata Metadata
 	const (
-		maxFileSize       = 50 * 1024 * 1024 // 50MB per file
-		maxTotalSize      = 500 * 1024 * 1024 // 500MB total extraction size
-		maxFiles          = 10000              // Maximum number of files
+		maxFileSize       = 5 * 1024 * 1024  // 5MB per file (generous for JSON)
+		maxTotalSize      = 50 * 1024 * 1024 // 50MB total extraction size
+		maxFiles          = 2000             // Maximum number of files (~1000 apps)
 	)
 
 	var totalExtractedSize int64

@@ -418,8 +418,8 @@ func (s *Server) handleImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse multipart form (max 100MB)
-	if err := r.ParseMultipartForm(100 << 20); err != nil {
+	// Parse multipart form (max 50MB to match backup limits)
+	if err := r.ParseMultipartForm(50 << 20); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
 		return
 	}
