@@ -2,6 +2,9 @@ name: Docker Build and Publish
 
 on:
   push:
+    branches:
+      - main
+      - staging
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -42,7 +45,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/staging' }}
 
       - name: Build and push Docker image
         id: build-and-push
