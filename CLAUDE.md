@@ -107,6 +107,12 @@ go run ./cmd/mavt -updates com.apple.mobilesafari
 # Show recent updates (e.g., last 24 hours)
 go run ./cmd/mavt -recent 24h
 
+# Export data to a ZIP backup
+go run ./cmd/mavt -export backup.zip
+
+# Import data from a ZIP backup
+go run ./cmd/mavt -import backup.zip
+
 # Build and run the binary
 go build -o mavt ./cmd/mavt
 ./mavt -version
@@ -154,6 +160,8 @@ mavt/
 ├── internal/              # Private application code (Go convention: not importable)
 │   ├── appstore/          # iTunes/App Store API client
 │   │   └── client.go      # HTTP client for App Store lookups and search
+│   ├── backup/            # Data backup and restore
+│   │   └── backup.go      # ZIP export/import with path traversal and zip bomb protection
 │   ├── config/            # Configuration management
 │   │   └── config.go      # Environment variable loader (MAVT_* prefix)
 │   ├── notifier/          # Apprise notification integration
@@ -282,6 +290,16 @@ The HTTP server provides the following REST API endpoints:
 - Body: `{"bundle_id": "com.example.app"}`
 - Example: `curl -X POST -H "Content-Type: application/json" -d '{"bundle_id":"com.burbn.instagram"}' http://localhost:8080/api/track`
 
+**GET /api/last-update**
+- Returns the timestamp of the most recent version update detected
+
+**GET /api/export**
+- Downloads a ZIP backup of all tracked app data
+
+**POST /api/import**
+- Imports a ZIP backup (multipart form upload)
+- Validates against zip bombs (50MB total, 5MB per file, 2000 files max) and path traversal
+
 **GET /api/health**
 - Health check endpoint
 - Returns: `{"status":"healthy","tracked_apps":N,"timestamp":"..."}`
@@ -312,6 +330,7 @@ When extending functionality:
 - **CLI commands**: Add flags and handlers to `cmd/mavt/main.go`
 - **Configuration**: Add new env vars to `internal/config/config.go` and document in `.env.example`
 - **Notifications**: Extend `internal/notifier/notifier.go` for new notification types
+- **Backup/restore**: Extend `internal/backup/backup.go` for data import/export logic
 
 ### Version Releases
 
@@ -329,7 +348,7 @@ When creating a new release:
 See [.env.example](.env.example) for complete list. Key variables:
 - `MAVT_APPS` - Comma-separated bundle IDs to track
 - `MAVT_CHECK_INTERVAL` - How often to check (e.g., "1h", "30m", "4h")
-- `MAVT_COUNTRY` - App Store region as ISO 3166-1 alpha-2 code (e.g., "US", "AU", "GB")
+- `MAVT_COUNTRY` - App Store region as ISO 3166-1 alpha-2 code (default: `AU`, e.g., "US", "GB")
 - `MAVT_DATA_DIR` - Where to store tracking data (default: `./data`)
 - `MAVT_LOG_LEVEL` - Logging verbosity (debug, info, warn, error)
 - `MAVT_SERVER_HOST` - HTTP server bind address (default: `0.0.0.0`)
